@@ -6,10 +6,12 @@ from django.conf import settings
 from django.contrib.auth import get_user_model  # Use this instead of directly importing User
 from .serializers import UserSerializer
 from rest_framework.permissions import AllowAny
+from rest_framework.parsers import MultiPartParser, FormParser
 
 User = get_user_model()
 
 class UserRegistrationView(APIView):
+    parser_classes = [MultiPartParser, FormParser]
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -27,7 +29,7 @@ class UserRegistrationView(APIView):
             # Send confirmation email
             send_mail(
                 subject="Welcome to CSI App",
-                message="Thank you for registering with CSI App.",
+                message="jai hind,Thank you for registering with CSI Technical Society ,Team CSI welcomes you !!(Akgec, Ghaziabad)",
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[user.email],
                 fail_silently=False,

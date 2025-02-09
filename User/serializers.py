@@ -8,6 +8,7 @@ class UserSerializer(serializers.ModelSerializer):
         queryset=Domain.objects.all(),  # Queryset to search for the domain
         slug_field='name'  # Field in the Domain model to match the input string
     )
+    photo = serializers.ImageField(use_url=True)
 
     class Meta:
         model = User
