@@ -22,14 +22,22 @@ class UserRegistrationView(APIView):
             user = serializer.save()
 
             # Set `is_staff` for admin role
-            if user.role == 'admin':
+            if user.role == 'admin' or user.year in ['3rd', '4th']:
                 user.is_staff = True
                 user.save()
 
             # Send confirmation email
             send_mail(
                 subject="Welcome to CSI App",
-                message="jai hind,Thank you for registering with CSI Technical Society ,Team CSI welcomes you !!(Akgec, Ghaziabad)",
+                 message=(
+                    f"Dear {user.first_name} {user.last_name},\n\n"
+                    f"Thank you for registering with the CSI Technical Society at AKGEC, Ghaziabad.\n\n"
+                    f"Our team warmly welcomes you to an exciting journey of innovation, learning, "
+                    f"and collaboration. We're thrilled to have you as part of our community.\n\n"
+                    f"Warm regards,\n\n"
+                    f"Team CSI\n"
+                    f"AKGEC, Ghaziabad\n"
+                ),
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[user.email],
                 fail_silently=False,
