@@ -12,6 +12,7 @@ gunicorn==23.0.0
 idna==3.10
 msgpack==1.1.0
 packaging==24.2
+pillow==11.1.0
 psycopg2-binary==2.9.10
 python-decouple==3.8
 python-dotenv==1.0.1
