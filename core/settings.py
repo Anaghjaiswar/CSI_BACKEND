@@ -26,6 +26,9 @@ INSTALLED_APPS = [
     'cloudinary_storage',
     'User',
     'Domain',
+    'Media',
+    'Event',
+    
 ]
 
 
