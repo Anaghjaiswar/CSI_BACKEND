@@ -1,3 +1,4 @@
+from django.shortcuts import get_object_or_404
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
 from rest_framework.views import APIView
@@ -8,12 +9,14 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.contrib.auth import get_user_model  # Use this instead of directly importing User
 from .serializers import  RegisterSerializer, UserListSerializer
+from .models import PasswordResetOTP
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.utils.crypto import get_random_string
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.exceptions import AuthenticationFailed
 from django.contrib.auth import authenticate
+import random
 
 User = get_user_model()
 
@@ -98,3 +101,63 @@ class UserListView(ListAPIView):
     queryset = User.objects.all()
     serializer_class = UserListSerializer
     permission_classes = [IsAuthenticated]
+
+
+class ForgotPasswordOTPAPIView(APIView):
+    def post(self, request):
+        email = request.data.get("email")
+        if not email:
+            return Response({"error": "Email is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(email=email)
+
+            # Generate a 6-digit OTP
+            otp = f"{random.randint(100000, 999999)}"
+            PasswordResetOTP.objects.create(user=user, otp=otp)
+
+            # Send the OTP via email
+            send_mail(
+                "Your Password Reset OTP",
+                f"Hi {user.first_name},\n\nYour OTP for resetting your password is: {otp}\n\n"
+                f"This OTP is valid for 10 minutes.\n\n"
+                f"If you did not request this, please ignore this email.",
+                "no-reply@example.com",
+                [user.email],
+                fail_silently=False,
+            )
+
+            return Response({"message": "OTP sent to your email."}, status=status.HTTP_200_OK)
+
+        except User.DoesNotExist:
+            return Response({"error": "User with this email does not exist."}, status=status.HTTP_404_NOT_FOUND)
+
+
+class ResetPasswordWithOTPAPIView(APIView):
+    def post(self, request):
+        email = request.data.get("email")
+        otp = request.data.get("otp")
+        new_password = request.data.get("password")
+
+        if not email or not otp or not new_password:
+            return Response({"error": "Email, OTP, and password are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = get_object_or_404(User, email=email)
+            otp_record = PasswordResetOTP.objects.filter(user=user, otp=otp, is_used=False).first()
+
+            if not otp_record or not otp_record.is_valid():
+                return Response({"error": "Invalid or expired OTP."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Reset the password
+            user.set_password(new_password)
+            user.save()
+
+            # Mark the OTP as used
+            otp_record.is_used = True
+            otp_record.save()
+
+            return Response({"message": "Password has been reset successfully."}, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)

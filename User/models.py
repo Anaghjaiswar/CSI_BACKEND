@@ -3,6 +3,7 @@ from django.db import models
 from cloudinary.models import CloudinaryField
 from Domain.models import Domain
 from django.core.exceptions import ValidationError
+from django.utils.timezone import now
 
 
 
@@ -74,4 +75,15 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({self.role})"
+    
+
+class PasswordResetOTP(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="otp_requests")
+    otp = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_used = models.BooleanField(default=False)
+
+    def is_valid(self):
+        # OTP is valid for 10 minutes
+        return not self.is_used and (now() - self.created_at).total_seconds() <= 600
 
