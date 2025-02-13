@@ -15,6 +15,7 @@ ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='').split(',')
 
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -23,13 +24,15 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework.authtoken',
+    'channels',
     'cloudinary',
     'cloudinary_storage',
+    "core.middleware",
     'User',
     'Domain',
     'Media',
     'Event',
-    
+    'Chat',    
 ]
 
 
@@ -50,20 +53,17 @@ REST_FRAMEWORK = {
     ),
 }
 
+
 ASGI_APPLICATION = "core.asgi.application"
 
 CHANNEL_LAYERS = {
     'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            'hosts': [
-                ('redis-12746.c325.us-east-1-4.ec2.redns.redis-cloud.com', 12746),
-            ],
-            'username': 'default',
-            'password': config('REDIS_PASSWORD'),  # Your Redis password
-        },
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
     },
+
 }
+
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

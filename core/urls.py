@@ -22,4 +22,5 @@ urlpatterns = [
     path('api/user/', include('User.urls')),
     path('api/event/', include('Event.urls')),
     path('api/media/', include('Media.urls')),
+    path('api/chat/', include('Chat.urls')),
 ]
