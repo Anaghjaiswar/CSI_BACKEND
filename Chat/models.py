@@ -81,3 +81,11 @@ class Message(models.Model):
         self.content = new_content
         self.is_edited = True
         self.save()
+
+    def save(self, *args, **kwargs):
+        """
+        Override the save method to ensure the sender is a member of the room.
+        """
+        if not self.room.members.filter(id=self.sender.id).exists():
+            raise ValueError("The sender must be a member of the room to send a message.")
+        super().save(*args, **kwargs)

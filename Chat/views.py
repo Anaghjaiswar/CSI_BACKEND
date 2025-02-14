@@ -7,9 +7,10 @@ from .models import Room, Message
 from .serializers import RoomSerializer, MessageSerializer, UserSerializer
 from django.contrib.auth import get_user_model
 
+
 User = get_user_model()
 
-# 1. Display the groups or rooms the user has joined
+# Display the groups or rooms the user has joined
 class UserRoomsAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -26,7 +27,7 @@ class UserRoomsAPIView(APIView):
             return Response({"error": f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-# 2. List of members in a particular group
+# List of members in a particular group
 class RoomMembersAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -39,11 +40,7 @@ class RoomMembersAPIView(APIView):
         except Exception as e:
             return Response({"error": f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
-# 3. API for adding yourself or others to a particular group
-
-
-# 5. API for displaying old messages of a particular group
+# API for displaying old messages of a particular group
 class RoomMessagesAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -69,3 +66,14 @@ class RoomMessagesAPIView(APIView):
 
         except Exception as e:
             return Response({"error": f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# 4. API for listing all groups not just groups that are joined by the user
+class RoomListAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        rooms = Room.objects.filter(is_active=True)
+        serializer = RoomSerializer(rooms, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+        
