@@ -1,7 +1,6 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from asgiref.sync import sync_to_async
-from .models import Room, Message 
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -108,6 +107,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     
     @sync_to_async
     def save_message(self, content, message_type, sender, attachment=None):
+        from .models import Room, Message   
         """
         Save the message to the database and return its ID and created timestamp.
         """
