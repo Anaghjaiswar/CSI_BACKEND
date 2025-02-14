@@ -17,11 +17,10 @@ class MessageInline(admin.TabularInline):
 
 @admin.register(Room)
 class RoomAdmin(admin.ModelAdmin):
-    list_display = ('name', 'description', 'total_members', 'is_active', 'created_at', 'updated_at')
+    list_display = ('name', 'description', 'total_members', 'is_active', 'created_at', 'updated_at', 'created_by')
     search_fields = ('name', 'description')
     list_filter = ('is_active', 'created_at')
-    # inlines = [MessageInline]  # Attach MessageInline to RoomAdmin
-    readonly_fields = ('created_at', 'updated_at', 'total_members')
+    readonly_fields = ('created_at', 'updated_at', 'total_members', 'created_by')
     ordering = ('-created_at',)
 
     def total_members(self, obj):

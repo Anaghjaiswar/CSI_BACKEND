@@ -24,7 +24,7 @@ class Room(models.Model):
         ],
     }
 
-    name = models.CharField(max_length=50, choices=ROOM_NAME_CHOICES, unique=True)
+    name = models.CharField(max_length=50, unique=True)
     description = models.TextField(blank=True, null=True)
     members = models.ManyToManyField(
         settings.AUTH_USER_MODEL, related_name="rooms"
@@ -33,6 +33,9 @@ class Room(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="created_rooms"
+    )
 
     def __str__(self):
         return f"{self.name}"
