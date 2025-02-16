@@ -4,8 +4,8 @@ from asgiref.sync import sync_to_async
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        self.room_name = self.scope["url_route"]["kwargs"]["room_name"]
-        self.room_group_name = f"chat_{self.room_name}"
+        self.room_id = self.scope["url_route"]["kwargs"]["room_id"]
+        self.room_group_name = f"chat_{self.room_id}"
 
         # Join room group
         await self.channel_layer.group_add(
@@ -57,7 +57,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         "attachment": attachment,
                         "id": message_id,
                         "created_at": created_at.isoformat(),
-                        "room": self.room_name,
+                        "room": self.room_id,
                     },
                 )
             else:
@@ -251,7 +251,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         """
         Save the message to the database and return its ID and created timestamp.
         """
-        room = Room.objects.get(name=self.room_name)
+        room = Room.objects.get(id=self.room_id)
 
         message = Message.objects.create(
             room=room,

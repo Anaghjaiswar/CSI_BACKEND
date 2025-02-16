@@ -55,7 +55,7 @@ class RoomMessagesAPIView(APIView):
                     status=status.HTTP_403_FORBIDDEN,
                 )
 
-            messages = room.messages.filter(is_deleted=False).order_by("-created_at")[:50]
+            messages = room.messages.all().order_by("-created_at")
             if not messages.exists():
                 return Response(
                     {"message": "No messages found in this room."},
