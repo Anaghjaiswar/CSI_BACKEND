@@ -15,10 +15,11 @@ class UserSerializer(serializers.ModelSerializer):
 class MessageSerializer(serializers.ModelSerializer):
     sender = UserSerializer(read_only=True)
     attachment = serializers.ImageField(use_url=True)
+    
 
     class Meta:
         model = Message
-        fields = ["id", "sender", "message_type", "content", "attachment", "created_at", "updated_at"]
+        fields = '__all__' 
 
 class UserForRoomSerializer(serializers.ModelSerializer):
     class Meta:

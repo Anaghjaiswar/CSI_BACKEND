@@ -32,9 +32,9 @@ class UserRoomsAPIView(APIView):
 class RoomMembersAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, room_name):
+    def get(self, request, room_id):
         try:
-            room = get_object_or_404(Room, name=room_name, is_active=True)
+            room = get_object_or_404(Room, id=room_id, is_active=True)
             serializer = UserSerializer(room.members.all(), many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -45,9 +45,9 @@ class RoomMembersAPIView(APIView):
 class RoomMessagesAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, room_name):
+    def get(self, request, room_id):
         try:
-            room = get_object_or_404(Room, name=room_name, is_active=True)
+            room = get_object_or_404(Room, id=room_id, is_active=True)
 
             if request.user not in room.members.all():
                 return Response(

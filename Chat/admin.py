@@ -4,7 +4,7 @@ from .models import Room, Message
 # Inline for displaying messages in the Room admin
 class MessageInline(admin.TabularInline):
     model = Message
-    fields = ('sender', 'message_type', 'content_preview', 'created_at', 'is_deleted')
+    fields = ('sender', 'message_type', 'content_preview', 'created_at', 'is_deleted',)
     readonly_fields = ('content_preview', 'created_at')
     extra = 0  # Removes the ability to add new messages directly in the inline form
 
@@ -32,7 +32,7 @@ class RoomAdmin(admin.ModelAdmin):
 
 @admin.register(Message)
 class MessageAdmin(admin.ModelAdmin):
-    list_display = ('room', 'sender', 'message_type', 'content_preview', 'created_at', 'is_deleted', 'is_edited')
+    list_display = ('room', 'sender', 'message_type', 'content_preview', 'created_at', 'is_deleted', 'is_edited', 'attachment','reactions')
     list_filter = ('room__name', 'message_type', 'is_deleted', 'created_at')
     search_fields = ('content', 'sender__username', 'room__name')
     readonly_fields = ('created_at', 'updated_at')

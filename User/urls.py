@@ -8,6 +8,4 @@ urlpatterns = [
     path('list/', UserListView.as_view(), name='user-list'),
     path("forgot-password/", ForgotPasswordOTPAPIView.as_view(), name="forgot-password-otp"),
     path("reset-password/", ResetPasswordWithOTPAPIView.as_view(), name="reset-password-otp"),
-
-    
 ]
