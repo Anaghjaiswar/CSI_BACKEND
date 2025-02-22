@@ -8,7 +8,7 @@ from rest_framework import status
 from django.core.mail import send_mail
 from django.conf import settings
 from django.contrib.auth import get_user_model  # Use this instead of directly importing User
-from .serializers import  RegisterSerializer, UserListSerializer
+from .serializers import  RegisterSerializer, UserListSerializer, MeetMyTeamUserSerializer
 from .models import PasswordResetOTP
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -161,3 +161,28 @@ class ResetPasswordWithOTPAPIView(APIView):
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class MeetOurTeamAPIView(APIView):
+    permission_classes =[IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        
+
+        print(User.YEAR_CHOICES)
+        try: 
+            users_by_year = {}
+
+            for year in User.YEAR_CHOICES:
+                year_key = year[0]
+                users_in_year = User.objects.filter(year=year_key, status='active').select_related('domain')
+                
+                user_data = MeetMyTeamUserSerializer(users_in_year, many=True).data
+                if user_data:
+                    users_by_year[year_key] = user_data
+
+            return Response(users_by_year, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({"error": "An error occurred while processing the request.", "details": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+

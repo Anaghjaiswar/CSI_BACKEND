@@ -61,13 +61,13 @@ class Message(models.Model):
     )  # For threaded messages
     mentions = models.ManyToManyField(
         settings.AUTH_USER_MODEL, related_name="mentioned_in", blank=True
-    ) # User mentions
-    reactions = models.JSONField(blank=True, null=True)  # To store reactions as a JSON object
-    is_deleted = models.BooleanField(default=False)  # Soft delete flag
-    is_edited = models.BooleanField(default=False)  # Flag for edited messages
+    ) 
+    reactions = models.JSONField(blank=True, null=True)  
+    is_deleted = models.BooleanField(default=False) 
+    is_edited = models.BooleanField(default=False)  
     status = models.JSONField(
         default=dict
-    )  # To track message status like {"read_by": [user_ids], "delivered": True}
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

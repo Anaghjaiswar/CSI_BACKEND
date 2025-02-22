@@ -18,3 +18,23 @@ class UserListSerializer(serializers.ModelSerializer):
 
     def get_full_name(self, obj):
         return f"{obj.first_name} {obj.last_name}"
+
+class DomainSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Domain
+        fields = ['name']
+
+
+class MeetMyTeamUserSerializer(serializers.ModelSerializer):
+    full_name = serializers.SerializerMethodField()
+    photo = serializers.ImageField(use_url=True)
+    domain = DomainSerializer()
+
+    class Meta:
+        model = User
+        fields = ['id', 'photo', 'full_name', 'domain']
+
+    def get_full_name(self, obj):
+        return obj.get_full_name()
+
+

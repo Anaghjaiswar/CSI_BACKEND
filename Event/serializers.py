@@ -12,9 +12,6 @@ class EventSerializer(serializers.ModelSerializer):
         return [media.file.url for media in obj.media_files.all()]
     
 
-from rest_framework import serializers
-from .models import Event
-
 class EventDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Event
