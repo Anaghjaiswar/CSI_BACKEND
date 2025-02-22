@@ -57,12 +57,13 @@ class Event(models.Model):
         super().clean()
 
     def save(self, *args, **kwargs):
-        now_time = now()
-        if self.event_date:
-            if self.event_date > now_time:
-                self.status = "upcoming"
-            elif self.event_date <= now_time:
-                self.status = "ongoing"
+        if not self.status:
+            now_time = now()
+            if self.event_date:
+                if self.event_date > now_time:
+                    self.status = "upcoming"
+                elif self.event_date <= now_time:
+                    self.status = "ongoing"
 
         self.full_clean()
         super().save(*args, **kwargs)

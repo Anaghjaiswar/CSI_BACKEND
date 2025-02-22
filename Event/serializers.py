@@ -2,14 +2,22 @@ from rest_framework import serializers
 from .models import Event
 
 class EventSerializer(serializers.ModelSerializer):
-    media_files = serializers.SerializerMethodField()
+    gallery_files = serializers.SerializerMethodField(read_only=True)
+    poster = serializers.ImageField(use_url=True)
+
     class Meta:
         model = Event
-        fields = ['id','title', 'media_files']
+        fields = [
+            'id', 'title', 'description', 'guidelines', 'venue', 
+            'registration_start_date', 'registration_end_date', 
+            'event_date', 'poster', 'status', 'is_registrations_open', 
+            'payment_required', 'amount', 'created_at', 'updated_at', 
+            'gallery_files'
+        ]  
 
 
-    def get_media_files(self, obj):
-        return [media.file.url for media in obj.media_files.all()]
+    def get_gallery_files(self, obj):
+        return [media.file.url for media in obj.gallery.all()]
     
 
 class EventDetailSerializer(serializers.ModelSerializer):

@@ -1,8 +1,13 @@
 from rest_framework.generics import ListAPIView, RetrieveAPIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
 from .models import Event
 from .serializers import EventSerializer, EventDetailSerializer
+from rest_framework import viewsets
+from Media.models import MediaFile
+from django.shortcuts import get_object_or_404
 
 
 class EventListView(ListAPIView):
@@ -30,3 +35,106 @@ class EventDetailView(RetrieveAPIView):
         #         {"error": "An error occurred while fetching the event details.", "details": str(e)},
         #         status=status.HTTP_500_INTERNAL_SERVER_ERROR
         #     )
+
+# for creating event details
+class CreateEventAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, format=None):
+        # Only admin users can create events
+        if getattr(request.user, 'role', None) != 'admin':
+            return Response(
+                {'detail': 'Only admin users can create events.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Copy request data and remove gallery key to avoid serializer issues
+        event_data = request.data.copy()
+        event_data.pop('gallery', None)
+        
+        # Retrieve multiple files from the gallery key
+        gallery_files = request.FILES.getlist('gallery')
+
+        serializer = EventSerializer(data=event_data)
+        if serializer.is_valid():
+            event = serializer.save()
+            # Process each uploaded file
+            for file in gallery_files:
+                media_file = MediaFile.objects.create(
+                    file=file,
+                    title=file.name,
+                    file_size=file.size,
+                )
+                event.gallery.add(media_file)
+
+            return Response(
+                {"success": "Event created successfully", "data": serializer.data},
+                status=status.HTTP_201_CREATED
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class EditEventAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request, *args, **kwargs):
+        # Retrieve the event object
+        event = get_object_or_404(Event, id=kwargs.get('id'))
+
+        # Ensure only admin users can edit the event
+        if getattr(request.user, 'role', None) != 'admin':
+            return Response(
+                {'detail': 'Only admin users can edit events.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Copy the request data to handle gallery updates separately
+        event_data = request.data.copy()
+        gallery_files = request.FILES.getlist('gallery')
+        
+        # Remove 'gallery' from event data to prevent serializer issues
+        event_data.pop('gallery', None)
+
+        # Serialize and validate the event data
+        serializer = EventSerializer(event, data=event_data, partial=True)
+        if serializer.is_valid():
+            event = serializer.save()
+
+            # Handle gallery updates
+            if gallery_files:
+                # Clear the existing gallery if needed
+                event.gallery.clear()
+                for file in gallery_files:
+                    media_file = MediaFile.objects.create(
+                        file=file,
+                        title=file.name,
+                        file_size=file.size,
+                    )
+                    event.gallery.add(media_file)
+
+            return Response(
+                {"success": "Event updated successfully", "data": serializer.data},
+                status=status.HTTP_200_OK
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+  
+
+class DeleteEventAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, *args, **kwargs):
+        # Retrieve the event object
+        event = get_object_or_404(Event, id=kwargs.get('id'))
+
+        # Ensure only admin users can delete the event
+        if getattr(request.user, 'role', None) != 'admin':
+            return Response(
+                {'detail': 'Only admin users can delete events.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Delete the event
+        event.delete()
+        return Response(
+            {'success': 'Event deleted successfully.'},
+            status=status.HTTP_200_OK
+        )
