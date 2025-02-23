@@ -26,17 +26,34 @@ class UserForRoomSerializer(serializers.ModelSerializer):
         model = User
         fields = ["id", "first_name", "last_name"]
 
+class LastMessageSerializer(serializers.ModelSerializer):
+    sender = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Message
+        fields = ['id', 'content', 'created_at', 'sender']
+
+    def get_sender(self, obj):
+        return {
+            "id": obj.sender.id,
+            "first_name": obj.sender.first_name,
+            "last_name": obj.sender.last_name,
+        }
+
+
+
 class RoomSerializer(serializers.ModelSerializer):
     room_avatar = serializers.ImageField(use_url=True, required=False)
     members = serializers.PrimaryKeyRelatedField(
         many=True, queryset=User.objects.all(), write_only=True
     )
-    members_detail = UserForRoomSerializer(many=True, read_only=True, source="members")
+    # members_detail = UserForRoomSerializer(many=True, read_only=True, source="members")
     created_by = UserForRoomSerializer(read_only=True)
+    last_message = serializers.SerializerMethodField()
 
     class Meta:
         model = Room
-        fields = ['id', 'name', 'description', 'members', "members_detail", 'room_avatar', 'is_active', 'created_by', 'created_at', 'updated_at']
+        fields = ['id', 'name', 'description', 'members', 'room_avatar', 'is_active', 'created_by', 'created_at', 'updated_at', 'last_message']
         read_only_fields = ['created_by', 'created_at', 'updated_at']
 
     def create(self, validated_data):
@@ -44,6 +61,10 @@ class RoomSerializer(serializers.ModelSerializer):
         room = Room.objects.create(**validated_data)
         room.members.set(members)  # Add members to the room
         return room
+    
+    def get_last_message(self, obj):
+        last_message = obj.messages.order_by('-created_at').first()
+        return LastMessageSerializer(last_message).data if last_message else None
 
 
 class EditRoomSerializer(serializers.ModelSerializer):

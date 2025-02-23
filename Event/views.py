@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from .models import Event
-from .serializers import EventSerializer, EventDetailSerializer
+from .serializers import EventSerializer, EventDetailSerializer, EventHomeSerializer
 from rest_framework import viewsets
 from Media.models import MediaFile
 from django.shortcuts import get_object_or_404
@@ -138,3 +138,31 @@ class DeleteEventAPIView(APIView):
             {'success': 'Event deleted successfully.'},
             status=status.HTTP_200_OK
         )
+    
+class EventHomeAPIView(APIView):
+    # permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        try: 
+            event = Event.objects.all().order_by('-created_at')
+            serializer = EventHomeSerializer(event, many = True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Event.DoesNotExist:
+            return Response(
+                {"error": "Event Not Found"},
+                status = status.HTTP_404_NOT_FOUND
+            )
+        
+class EventDetailAPIView(APIView):
+    # permission_classes = [IsAuthenticated]
+
+    def get(self, request, event_id, *args, **kwargs):
+        try:
+            event = Event.objects.get(id=event_id)
+            serializer = EventDetailSerializer(event)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Event.DoesNotExist:
+            return Response(
+                {"error": "Event Not Found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
