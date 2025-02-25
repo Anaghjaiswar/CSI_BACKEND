@@ -16,6 +16,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from .views import warm_up
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -23,4 +24,7 @@ urlpatterns = [
     path('api/event/', include('Event.urls')),
     path('api/media/', include('Media.urls')),
     path('api/chat/', include('Chat.urls')),
+    path('api/domain/', include('Domain.urls')),
+    path('api/task/', include('Task.urls')),
+    path('api/warmup/', warm_up, name='warmup'),
 ]

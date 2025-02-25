@@ -1,5 +1,5 @@
 from django.contrib import admin
 from .models import Domain
+from User.models import User
 
-# Register your models here.
 admin.site.register(Domain)

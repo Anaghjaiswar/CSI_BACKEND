@@ -32,7 +32,8 @@ INSTALLED_APPS = [
     'Domain',
     'Media',
     'Event',
-    'Chat',    
+    'Chat',  
+    'Task'  
 ]
 
 

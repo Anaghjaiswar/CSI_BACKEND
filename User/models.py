@@ -59,7 +59,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     insta_url = models.URLField(max_length=200, blank=True, null=True)
     github_url = models.URLField(max_length=200, blank=True, null=True)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES)
-    bio = models.TextField()
+    bio = models.TextField(blank=True, null=True)
     year = models.CharField(max_length=10, choices=YEAR_CHOICES)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='active')
     is_staff = models.BooleanField(default=False)  # Required for admin interface
