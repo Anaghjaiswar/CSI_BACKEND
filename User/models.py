@@ -106,7 +106,7 @@ class StudentProfile(models.Model):
         ('female', 'Female'),
         ('other', 'Other'),
     ]
-    
+
     BRANCH_CHOICES = [
         ('CSE', 'CSE'),
         ('CS', 'CS'),
