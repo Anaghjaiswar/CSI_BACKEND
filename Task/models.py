@@ -81,8 +81,13 @@ class Task(models.Model):
         """
         Dynamically determine the status of the task based on dates and completion status.
         """
+        if self.current_progress == 100:
+            return 'completed'
         if self.start_date <= date.today() <= self.end_date and self.status != 'completed':
             return 'current'
         if self.end_date < date.today() and self.status != 'completed':
             return 'pending'
         return self.status
+
+
+

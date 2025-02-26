@@ -137,6 +137,9 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# android_client_id = os.getenv('GOOGLE_ANDROID_CLIENT_ID')
+# ios_client_id = os.getenv('GOOGLE_IOS_CLIENT_ID')
+
 
 LANGUAGE_CODE = 'en-us'
 

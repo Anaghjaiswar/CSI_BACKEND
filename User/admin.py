@@ -20,3 +20,4 @@ from .models import User
 #     ordering = ('email',)
 
 admin.site.register(User)
+

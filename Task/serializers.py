@@ -45,6 +45,7 @@ class GroupSerializer(serializers.ModelSerializer):
 class TaskSerializer(serializers.ModelSerializer):
     groups = GroupSerializer(many=True)
     attachment = serializers.FileField(use_url=True, required=False)
+    status = serializers.SerializerMethodField()
 
     class Meta:
         model = Task
@@ -60,6 +61,9 @@ class TaskSerializer(serializers.ModelSerializer):
             'info_url',
             'groups',
         ]
+
+    def get_status(self, obj):
+        return obj.get_status()
 
     def validate(self, data):
         """

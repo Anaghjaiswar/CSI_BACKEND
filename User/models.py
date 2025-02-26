@@ -4,6 +4,7 @@ from cloudinary.models import CloudinaryField
 from Domain.models import Domain
 from django.core.exceptions import ValidationError
 from django.utils.timezone import now
+from django.conf import settings
 
 
 
@@ -36,6 +37,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     ROLE_CHOICES = [
         ('admin', 'Admin'),
         ('member', 'Member'),
+        ('student', 'Student'),
     ]
 
     STATUS_CHOICES = [
@@ -90,3 +92,47 @@ class PasswordResetOTP(models.Model):
         # OTP is valid for 10 minutes
         return not self.is_used and (now() - self.created_at).total_seconds() <= 600
 
+
+
+class StudentProfile(models.Model):
+    YEAR_CHOICES = [
+        ('1st', '1st Year'),
+        ('2nd', '2nd Year'),
+        ('3rd', '3rd Year'),
+        ('4th', '4th Year'),
+    ]
+    GENDER_CHOICES = [
+        ('male', 'Male'),
+        ('female', 'Female'),
+        ('other', 'Other'),
+    ]
+    
+    BRANCH_CHOICES = [
+        ('CSE', 'CSE'),
+        ('CS', 'CS'),
+        ('CS-IT', 'CS-IT'),
+        ('CSE-DS', 'CSE-DS'),
+        ('CS-HINDI', 'CS-HINDI'),
+        ('CSE-AIML', 'CSE-AIML'),
+        ('IT', 'IT'),
+        ('AIML', 'AIML'),
+        ('ECE', 'ECE'),
+        ('ME', 'ME'),
+        ('EN', 'EN'),
+        ('CIVIL', 'CIVIL'),
+    ]
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='student_profile'
+    )
+    # Student-specific fields
+    student_number = models.CharField(max_length=50, unique=True)
+    branch = models.CharField(max_length=20, choices=BRANCH_CHOICES, blank=True, null=True)
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, blank=True, null=True)
+    hosteller = models.BooleanField()
+    year = models.CharField(max_length=10, choices=YEAR_CHOICES)
+
+    def __str__(self):
+        return f"{self.user.get_full_name()} - {self.student_number or 'No Student Number'}"

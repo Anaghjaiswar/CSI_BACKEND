@@ -123,3 +123,50 @@ class DeleteTaskAPIView(APIView):
 
         task.delete()
         return Response({"message": "Task deleted successfully!"}, status=status.HTTP_200_OK)
+    
+class TaskListAPIView(APIView):
+    """
+    API View to list all tasks.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        tasks = Task.objects.all()
+        serializer = TaskSerializer(tasks, many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+
+class UserTasksAPIView(APIView):
+    """
+    API endpoint to fetch tasks for the logged-in user, grouped by status.
+
+    A task is considered associated with the user if the user is a member
+    of any group attached to that task.
+
+    The response groups tasks into three categories:
+      - "current": Tasks that are currently ongoing.
+      - "pending": Tasks whose end date has passed and are not completed.
+      - "completed": Tasks with 100% progress (or as computed).
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        # Get all tasks where the logged-in user is a member of any group.
+        tasks = Task.objects.filter(groups__members=request.user).distinct()
+   
+        tasks_by_status = {
+            "current": [],
+            "pending": [],
+            "completed": []
+        }
+        
+        # Serialize each task and use the computed status (via get_status()).
+        for task in tasks:
+            serialized_task = TaskSerializer(task, context={'request': request}).data
+            status_key = serialized_task.get("status")
+            # Ensure the status key exists in our dictionary.
+            if status_key not in tasks_by_status:
+                tasks_by_status[status_key] = []
+            tasks_by_status[status_key].append(serialized_task)
+        
+        return Response(tasks_by_status, status=status.HTTP_200_OK)

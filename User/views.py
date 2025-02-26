@@ -17,6 +17,9 @@ from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.exceptions import AuthenticationFailed
 from django.contrib.auth import authenticate
 import random
+from google.auth.transport import requests as google_requests
+from google.oauth2 import id_token
+from decouple import config
 
 User = get_user_model()
 
@@ -186,3 +189,59 @@ class MeetOurTeamAPIView(APIView):
         except Exception as e:
             return Response({"error": "An error occurred while processing the request.", "details": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+# # Load client IDs from environment variables
+ANDROID_CLIENT_ID = config("GOOGLE_ANDROID_CLIENT_ID")
+IOS_CLIENT_ID = config("GOOGLE_IOS_CLIENT_ID")
+
+class StudentGoogleLoginAPIView(APIView):
+    permission_classes = []  # Allow public access
+
+    def post(self, request):
+        id_token_str = request.data.get("id_token")
+        if not id_token_str:
+            return Response(
+                {"error": "ID token is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            # Verify the token without an audience, so we can inspect it first
+            idinfo = id_token.verify_oauth2_token(id_token_str, google_requests.Request())
+            audience = idinfo.get("aud")
+            if audience not in [ANDROID_CLIENT_ID, IOS_CLIENT_ID]:
+                raise ValueError("Invalid audience: " + str(audience))
+        except Exception as e:
+            return Response(
+                {"error": f"Invalid Google ID token: {str(e)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        email = idinfo.get("email")
+        if not email or not email.endswith("@akgec.ac.in"):
+            return Response(
+                {"error": "Email must end with '@akgec.ac.in'."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        first_name = idinfo.get("given_name", "")
+        last_name = idinfo.get("family_name", "")
+
+        # Create or update the student user
+        user, created = User.objects.get_or_create(email=email, defaults={
+            "first_name": first_name,
+            "last_name": last_name,
+            "role": "student",
+            "username": email.split('@')[0],  # Simplistic username generation
+        })
+        if not created:
+            user.first_name = first_name
+            user.last_name = last_name
+            user.role = "student"
+            user.save()
+
+        # Generate or retrieve DRF token for the user
+        token, _ = Token.objects.get_or_create(user=user)
+        return Response(
+            {"token": token.key, "message": "Student logged in successfully."},
+            status=status.HTTP_200_OK
+        )
