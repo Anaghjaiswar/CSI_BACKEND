@@ -62,7 +62,7 @@ class RoomMessagesAPIView(APIView):
                     status=status.HTTP_404_NOT_FOUND,
                 )
 
-            serializer = MessageSerializer(messages, many=True)
+            serializer = MessageSerializer(messages, many=True, context={"request": request})
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         except Exception as e:

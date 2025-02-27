@@ -187,6 +187,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
         created_at = event['created_at']
         room = event['room']
         attachment = event.get("attachment", None)
+        current_user = self.scope.get("user")
+        is_self = False
+        if current_user and current_user.is_authenticated:
+            is_self = sender.get("id") == current_user.id
+
 
 
         # Send message to WebSocket
@@ -197,6 +202,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     "sender": sender,
                     'message_type': message_type,
                     'id': message_id,
+                    'is_self': is_self,
                     "attachment": attachment,
                     'created_at': created_at,
                     'room': room,

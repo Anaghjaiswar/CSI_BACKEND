@@ -15,11 +15,18 @@ class UserSerializer(serializers.ModelSerializer):
 class MessageSerializer(serializers.ModelSerializer):
     sender = UserSerializer(read_only=True)
     attachment = serializers.ImageField(use_url=True)
+    is_self = serializers.SerializerMethodField()
     
 
     class Meta:
         model = Message
         fields = '__all__' 
+
+    def get_is_self(self, obj):
+        request = self.context.get("request")
+        if request and hasattr(request, "user"):
+            return obj.sender.id == request.user.id
+        return False
 
 class UserForRoomSerializer(serializers.ModelSerializer):
     class Meta:
