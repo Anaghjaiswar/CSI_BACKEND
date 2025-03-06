@@ -57,10 +57,11 @@ class RoomSerializer(serializers.ModelSerializer):
     # members_detail = UserForRoomSerializer(many=True, read_only=True, source="members")
     created_by = UserForRoomSerializer(read_only=True)
     last_message = serializers.SerializerMethodField()
+    unread_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Room
-        fields = ['id', 'name', 'description', 'members', 'room_avatar', 'is_active', 'created_by', 'created_at', 'updated_at', 'last_message']
+        fields = ['id', 'name', 'description', 'members', 'room_avatar', 'is_active','unread_count', 'created_by', 'created_at', 'updated_at', 'last_message']
         read_only_fields = ['created_by', 'created_at', 'updated_at']
 
     def create(self, validated_data):
@@ -72,6 +73,28 @@ class RoomSerializer(serializers.ModelSerializer):
     def get_last_message(self, obj):
         last_message = obj.messages.order_by('-created_at').first()
         return LastMessageSerializer(last_message).data if last_message else None
+    
+    def get_unread_count(self, obj):
+        # Retrieve the current user from the serializer context
+        request = self.context.get("request")
+        if not request or not request.user.is_authenticated:
+            return 0
+
+        user = request.user
+
+        try:
+            status = obj.user_statuses.get(user=user)
+            last_read = status.last_read
+        except Exception:
+            last_read = None
+
+        # If a last_read timestamp exists, count messages created after it
+        if last_read:
+            unread_count = obj.messages.filter(created_at__gt=last_read).count()
+        else:
+            unread_count = obj.messages.count()
+
+        return unread_count
 
 
 class EditRoomSerializer(serializers.ModelSerializer):

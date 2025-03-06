@@ -189,7 +189,7 @@ class MeetOurTeamAPIView(APIView):
         except Exception as e:
             return Response({"error": "An error occurred while processing the request.", "details": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-# # Load client IDs from environment variables
+ # Load client IDs from environment variables
 ANDROID_CLIENT_ID = config("GOOGLE_ANDROID_CLIENT_ID")
 IOS_CLIENT_ID = config("GOOGLE_IOS_CLIENT_ID")
 

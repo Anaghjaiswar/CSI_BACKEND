@@ -92,3 +92,14 @@ class Message(models.Model):
         if not self.room.members.filter(id=self.sender.id).exists():
             raise ValueError("The sender must be a member of the room to send a message.")
         super().save(*args, **kwargs)
+
+class UserRoomStatus(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="room_statuses")
+    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name="user_statuses")
+    last_read = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ('user', 'room')
+
+    def __str__(self):
+        return f"{self.user} in {self.room} last read at {self.last_read}"

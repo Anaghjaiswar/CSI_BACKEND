@@ -10,6 +10,9 @@ from .views import (
     RemoveYourselfFromRoomAPIView,
     TransferOwnershipAPIView,
     AddYourselfToRoomAPIView,
+    UserGroupSearchAPIView,
+    UserGroupMembersSearchAPIView,
+    MarkRoomAsReadAPIView
 )
 
 urlpatterns = [
@@ -23,4 +26,8 @@ urlpatterns = [
     path('group/<int:room_id>/remove-yourself/', RemoveYourselfFromRoomAPIView.as_view(), name='remove-yourself-from-room'),
     path('group/<int:room_id>/transfer-ownership/', TransferOwnershipAPIView.as_view(), name='transfer-ownership'),
     path('group/<int:room_id>/add-yourself/', AddYourselfToRoomAPIView.as_view(), name='add-yourself-to-room'),
+    path('groups/search/', UserGroupSearchAPIView.as_view(), name='group-search'),
+    path('groups/<int:room_id>/search/members/',UserGroupMembersSearchAPIView.as_view(), name='group-search-members'),
+    path('groups/<int:room_id>/mark-as-read/',MarkRoomAsReadAPIView.as_view(), name='mark-as-read'),
 ]
+

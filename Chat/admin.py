@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Room, Message
+from .models import Room, Message, UserRoomStatus
 
 # Inline for displaying messages in the Room admin
 class MessageInline(admin.TabularInline):
@@ -43,3 +43,5 @@ class MessageAdmin(admin.ModelAdmin):
         return obj.content[:50] if obj.content else "No content"
 
     content_preview.short_description = 'Content Preview'
+
+admin.site.register(UserRoomStatus)

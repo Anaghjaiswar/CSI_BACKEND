@@ -130,6 +130,28 @@ class ChatConsumer(AsyncWebsocketConsumer):
             else:
                 await self.send(text_data=json.dumps({"error": "Message ID is required for deletion."}))
 
+        elif action == "typing":
+            sender_details = await sync_to_async(self.get_sender_details)(sender)
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    "type": "chat_typing",
+                    "sender": sender_details,
+                    "is_typing": True,
+                },
+            )
+
+        elif action == "stop_typing":
+            sender_details = await sync_to_async(self.get_sender_details)(sender)
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    "type": "chat_typing",
+                    "sender": sender_details,
+                    "is_typing": False,
+                },
+            )
+
         else:
             await self.send(text_data=json.dumps({"error": "Unknown action"}))
 
@@ -230,6 +252,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "reactions": event["reactions"],
         }))
 
+    async def chat_typing(self, event):
+            await self.send(text_data=json.dumps({
+                "action": "typing",
+                "sender": event["sender"],
+                "is_typing": event["is_typing"],
+            }))
 
     def get_sender_details(self, sender):
         """

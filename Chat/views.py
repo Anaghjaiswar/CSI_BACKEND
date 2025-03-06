@@ -3,13 +3,29 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from django.shortcuts import get_object_or_404
-from .models import Room, Message
+from .models import Room, Message, UserRoomStatus
 from .serializers import RoomSerializer, MessageSerializer, UserSerializer, EditRoomSerializer, RoomListSerializer
 from django.contrib.auth import get_user_model
 from rest_framework.exceptions import NotFound
+from django.db.models import Q
+from django.utils import timezone
 
 
 User = get_user_model()
+
+class MarkRoomAsReadAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, room_id):
+        try:
+            print(2+2)
+            room = get_object_or_404(Room, id=room_id)
+            status_obj, created = UserRoomStatus.objects.get_or_create(user=request.user, room=room)
+            status_obj.last_read = timezone.now()
+            status_obj.save()
+            return Response({"message": "Room marked as read."})
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # Display the groups or rooms the user has joined
 class UserRoomsAPIView(APIView):
@@ -21,7 +37,7 @@ class UserRoomsAPIView(APIView):
             if not rooms.exists():
                 return Response({"message": "You have not joined any rooms."}, status=status.HTTP_404_NOT_FOUND)
 
-            serializer = RoomSerializer(rooms, many=True)
+            serializer = RoomSerializer(rooms, many=True, context={'request': request})
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         except Exception as e:
@@ -263,3 +279,58 @@ class AddYourselfToRoomAPIView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+    
+class UserGroupSearchAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        query = request.query_params.get('q', '')
+        groups = request.user.rooms.filter(is_active=True)
+        if query:
+            groups = groups.filter(
+                Q(name__icontains=query) | Q(description__icontains=query)
+            )
+        if not query:
+            return Response(
+                {"error": "Please Provide a search query."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not groups.exists():
+            return Response(
+                {"message": "No groups Found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        serializer = RoomListSerializer(groups, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+class UserGroupMembersSearchAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, room_id,*args, **kwargs ):
+        room = get_object_or_404(Room, id=room_id, is_active=True)
+
+        if not room.members.filter(id=request.user.id).exists():
+            return Response(
+                {"message": "You are not a member of this group"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        query = request.query_params.get('q', '')
+        members = room.members.all()
+        if query:
+            members = members.filter(
+                Q(first_name__icontains=query)|
+                Q(last_name__icontains=query)
+            )
+        if not query:
+            return Response(
+                {"error": "Please Provide a search query."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not members.exists():
+            return Response(
+                {"message": "no user found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        serializer = UserSerializer(members, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
