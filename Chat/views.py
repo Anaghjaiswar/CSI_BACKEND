@@ -6,10 +6,11 @@ from django.shortcuts import get_object_or_404
 from .models import Room, Message, UserRoomStatus
 from .serializers import RoomSerializer, MessageSerializer, UserSerializer, EditRoomSerializer, RoomListSerializer
 from django.contrib.auth import get_user_model
-from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import NotFound, PermissionDenied
 from django.db.models import Q
 from django.utils import timezone
-
+from rest_framework.generics import ListAPIView
+from rest_framework.pagination import PageNumberPagination
 
 User = get_user_model()
 
@@ -57,32 +58,21 @@ class RoomMembersAPIView(APIView):
         except Exception as e:
             return Response({"error": f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-# API for displaying old messages of a particular group
-class RoomMessagesAPIView(APIView):
+class MessagePagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+    
+class RoomMessagesAPIView(ListAPIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = MessageSerializer
+    pagination_class = MessagePagination
 
-    def get(self, request, room_id):
-        try:
-            room = get_object_or_404(Room, id=room_id, is_active=True)
-
-            if request.user not in room.members.all():
-                return Response(
-                    {"error": "You are not a member of this room."},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
-
-            messages = room.messages.all().order_by("-created_at")
-            if not messages.exists():
-                return Response(
-                    {"message": "No messages found in this room."},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
-
-            serializer = MessageSerializer(messages, many=True, context={"request": request})
-            return Response(serializer.data, status=status.HTTP_200_OK)
-
-        except Exception as e:
-            return Response({"error": f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    def get_queryset(self):
+        room = get_object_or_404(Room, id=self.kwargs["room_id"], is_active=True)
+        if self.request.user not in room.members.all():
+            raise PermissionDenied("You are not a member of this room.")
+        return room.messages.all().order_by("-created_at")
 
 
 # 4. API for listing all groups not just groups that are joined by the user

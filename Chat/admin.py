@@ -32,7 +32,7 @@ class RoomAdmin(admin.ModelAdmin):
 
 @admin.register(Message)
 class MessageAdmin(admin.ModelAdmin):
-    list_display = ('room', 'sender', 'message_type', 'content_preview', 'created_at', 'is_deleted', 'is_edited', 'attachment','reactions')
+    list_display = ('room', 'sender', 'message_type', 'content_preview', 'mentions_list',  'created_at', 'is_deleted', 'is_edited', 'attachment','reactions',)
     list_filter = ('room__name', 'message_type', 'is_deleted', 'created_at')
     search_fields = ('content', 'sender__username', 'room__name')
     readonly_fields = ('created_at', 'updated_at')
@@ -43,5 +43,10 @@ class MessageAdmin(admin.ModelAdmin):
         return obj.content[:50] if obj.content else "No content"
 
     content_preview.short_description = 'Content Preview'
+    
+    def mentions_list(self, obj):
+        """Return a comma-separated list of mention usernames."""
+        return ", ".join([str(user) for user in obj.mentions.all()])
+    mentions_list.short_description = 'Mentions'
 
 admin.site.register(UserRoomStatus)

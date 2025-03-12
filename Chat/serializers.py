@@ -75,7 +75,7 @@ class RoomSerializer(serializers.ModelSerializer):
         return LastMessageSerializer(last_message).data if last_message else None
     
     def get_unread_count(self, obj):
-        # Retrieve the current user from the serializer context
+        # Retrieve the current user from the serializer
         request = self.context.get("request")
         if not request or not request.user.is_authenticated:
             return 0

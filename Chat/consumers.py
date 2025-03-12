@@ -131,6 +131,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 await self.send(text_data=json.dumps({"error": "Message ID is required for deletion."}))
 
         elif action == "typing":
+            sender = self.scope["user"]
             sender_details = await sync_to_async(self.get_sender_details)(sender)
             await self.channel_layer.group_send(
                 self.room_group_name,
@@ -142,6 +143,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             )
 
         elif action == "stop_typing":
+            sender = self.scope["user"]
             sender_details = await sync_to_async(self.get_sender_details)(sender)
             await self.channel_layer.group_send(
                 self.room_group_name,
