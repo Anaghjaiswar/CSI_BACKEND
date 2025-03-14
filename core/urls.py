@@ -28,4 +28,5 @@ urlpatterns = [
     path('api/task/', include('Task.urls')),
     path('api/warmup/', warm_up, name='warmup'),
     path('api/notifications/', include('Notification.urls')),
+    path('api/attendance/', include('Attendance.urls')),
 ]
