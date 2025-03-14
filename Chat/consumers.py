@@ -43,10 +43,21 @@ class ChatConsumer(AsyncWebsocketConsumer):
             message_type = text_data_json.get('message_type', 'text')
             attachment = text_data_json.get("attachment", None)
             mentions = text_data_json.get("mentions", None)
+            parent_message_id = text_data_json.get("parent_message_id", None)
 
             if sender.is_authenticated:
                 sender_details = await sync_to_async(self.get_sender_details)(sender)
-                message_id, created_at = await self.save_message(message, message_type, sender, attachment, mentions)
+                parent_message = None
+
+                if parent_message_id:
+                    from .models import Message
+                    try:
+                        parent_message = await sync_to_async(Message.objects.get)(id=parent_message_id)
+                    except Message.DoesNotExist:
+                        await self.send(text_data=json.dumps({"error": "Parent message does not exist"}))
+                        return
+                    
+                message_id, created_at = await self.save_message(message, message_type, sender, attachment, mentions,parent_message)
                 await self.channel_layer.group_send(
                     self.room_group_name,
                     {
@@ -58,6 +69,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         "id": message_id,
                         "created_at": created_at.isoformat(),
                         "room": self.room_id,
+                        "parent_message_id": parent_message_id,
                     },
                 )
                 if mentions:
@@ -245,11 +257,31 @@ class ChatConsumer(AsyncWebsocketConsumer):
         created_at = event['created_at']
         room = event['room']
         attachment = event.get("attachment", None)
+        parent_message_id = event.get("parent_message_id", None)
+        parent_message = None
         current_user = self.scope.get("user")
         is_self = False
         if current_user and current_user.is_authenticated:
             is_self = sender.get("id") == current_user.id
 
+        if parent_message_id:
+            from .models import Message
+            try:
+                parent_message_obj = await sync_to_async(
+                    Message.objects.select_related("sender").get
+                )(id=parent_message_id)
+                parent_message = {
+                    "id": parent_message_obj.id,
+                    "content": parent_message_obj.content,
+                    "sender": {
+                        "id": parent_message_obj.sender.id,
+                        "name": parent_message_obj.sender.first_name,
+                        "photo": parent_message_obj.sender.photo.url if parent_message_obj.sender.photo else None,
+                    },
+                    "created_at": parent_message_obj.created_at.isoformat(),
+                }
+            except Message.DoesNotExist:
+                parent_message = None
 
 
         # Send message to WebSocket
@@ -264,6 +296,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                     "attachment": attachment,
                     'created_at': created_at,
                     'room': room,
+                    "parent_message": parent_message,
                 }
             )
         )
@@ -319,7 +352,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         }
     
     @sync_to_async
-    def save_message(self, content, message_type, sender, attachment=None, mentions=None):
+    def save_message(self, content, message_type, sender, attachment=None, mentions=None,parent_message=None):
         from .models import Room, Message  
         from django.contrib.auth import get_user_model
         User = get_user_model() 
@@ -334,6 +367,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             message_type=message_type,
             content=content,
             attachment=attachment,
+            parent_message=parent_message,
         )
         if mentions:
             valid_mentions = room.members.filter(id__in=mentions)
