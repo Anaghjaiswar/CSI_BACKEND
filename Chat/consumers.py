@@ -289,11 +289,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
         }))
 
     async def chat_typing(self, event):
-            await self.send(text_data=json.dumps({
-                "action": "typing",
-                "sender": event["sender"],
-                "is_typing": event["is_typing"],
-            }))
+        sender = event["sender"]
+        current_user = self.scope.get("user")
+        if current_user and current_user.is_authenticated and sender["id"] == current_user.id:
+            return
+        
+        await self.send(text_data=json.dumps({
+            "action": "typing",
+            "sender": event["sender"],
+            "is_typing": event["is_typing"],
+        }))
 
     def get_sender_details(self, sender):
         """
