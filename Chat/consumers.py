@@ -60,6 +60,40 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         "room": self.room_id,
                     },
                 )
+                if mentions:
+                    from User.models import User
+                    from Notification.models import Notification
+                    room_name = await self.get_room_name(self.room_id)
+                    for mentioned_user_id in mentions:
+                        if mentioned_user_id == sender.id:
+                            continue  
+                        try:
+                            user = await sync_to_async(User.objects.get)(id=mentioned_user_id)
+                        except User.DoesNotExist:
+                            continue
+
+                        notification = await sync_to_async(Notification.objects.create)(
+                            user=user,
+                            event_type='chat_mention',
+                            message=f"You were mentioned in {room_name} chat by {sender.first_name}",
+                            is_read=False
+                        )
+                        notification_data = {
+                            "id": notification.id,
+                            "event_type": notification.event_type,
+                            "message": notification.message,
+                            "url": notification.url,
+                            "created_at": notification.created_at.isoformat(),
+                        }
+                        # Send the notification to the mentioned user's notifications group
+                        await self.channel_layer.group_send(
+                            f"notifications_{user.id}",
+                            {
+                                "type": "send_notification",
+                                "notification": notification_data,
+                            }
+                        )
+
             else:
                 await self.send(text_data=json.dumps({"error": "User is not authenticated"}))
 
@@ -300,3 +334,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
             valid_mentions = room.members.filter(id__in=mentions)
             message.mentions.set(valid_mentions)
         return message.id, message.created_at
+    
+    @sync_to_async
+    def get_room_name(self, room_id):
+        from .models import Room
+        room = Room.objects.get(id=room_id)
+        return room.name

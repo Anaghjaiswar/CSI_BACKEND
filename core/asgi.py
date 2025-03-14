@@ -16,8 +16,11 @@ django.setup()
 from django.core.asgi import get_asgi_application
 from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.auth import AuthMiddlewareStack
-from Chat.routing import websocket_urlpatterns
+from Chat.routing import websocket_urlpatterns as chat_websocket_urlpatterns
 from core.middleware.drf_token_auth_middleware import TokenAuthMiddleware
+from Notification.routing import websocket_urlpatterns as notification_websocket_urlpatterns
+
+websocket_urlpatterns = chat_websocket_urlpatterns + notification_websocket_urlpatterns
 
 
 # HTTP and WebSocket protocols

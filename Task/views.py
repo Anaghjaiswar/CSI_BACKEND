@@ -7,6 +7,8 @@ from .serializers import TaskSerializer
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser
 import json
+from Notification.models import Notification
+from Notification.utils import notify_user
 
 
 class TaskCreateAPIView(APIView):
@@ -18,7 +20,7 @@ class TaskCreateAPIView(APIView):
         data = { key: request.data.get(key) for key in request.data }
         
         # DEBUG: Show plain dict
-        print("DEBUG plain data:", data)
+        # print("DEBUG plain data:", data)
 
         # Check and parse 'groups' if it's a string
         if 'groups' in data and isinstance(data['groups'], str):
@@ -31,11 +33,35 @@ class TaskCreateAPIView(APIView):
                 )
 
         # DEBUG: Show parsed data after groups conversion
-        print("DEBUG parsed data:", data)
+        # print("DEBUG parsed data:", data)
 
         serializer = TaskSerializer(data=data, context={'request': request})
         if serializer.is_valid():
             task = serializer.save(assigned_by=request.user)
+            task.refresh_from_db()
+
+            # Iterate over each group in the task and send notifications to all its members
+            for group in task.groups.all():
+                for member in group.members.all():
+                    # Create the notification record
+                    notification = Notification.objects.create(
+                        user=member,
+                        event_type='task',
+                        message=f"You have been assigned a new task: {task.title}",
+                        is_read=False
+                    )
+                    # Prepare the payload for real-time delivery
+                    notification_data = {
+                        "id": notification.id,
+                        "event_type": notification.event_type,
+                        "message": notification.message,
+                        "url": notification.url,
+                        "created_at": notification.created_at.isoformat(),
+                    }
+                    # Use your utility function to send the notification via WebSocket
+                    notify_user(member, notification_data)
+
+
             return Response(
                 {
                     "message": "Task and groups created successfully!",

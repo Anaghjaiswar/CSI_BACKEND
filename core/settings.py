@@ -33,7 +33,8 @@ INSTALLED_APPS = [
     'Media',
     'Event',
     'Chat',  
-    'Task'  
+    'Task',   
+    'Notification',
 ]
 
 
