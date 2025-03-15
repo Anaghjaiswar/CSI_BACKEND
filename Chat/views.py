@@ -19,7 +19,7 @@ class MarkRoomAsReadAPIView(APIView):
 
     def post(self, request, room_id):
         try:
-            print(2+2)
+            # print(2+2)
             room = get_object_or_404(Room, id=room_id)
             status_obj, created = UserRoomStatus.objects.get_or_create(user=request.user, room=room)
             status_obj.last_read = timezone.now()

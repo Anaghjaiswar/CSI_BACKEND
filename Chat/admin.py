@@ -32,7 +32,7 @@ class RoomAdmin(admin.ModelAdmin):
 
 @admin.register(Message)
 class MessageAdmin(admin.ModelAdmin):
-    list_display = ('room', 'sender', 'message_type', 'content_preview', 'mentions_list',  'created_at', 'is_deleted', 'is_edited', 'attachment','reactions',)
+    list_display = ('room', 'sender', 'message_type', 'content_preview', 'mentions_list','parent_message', 'is_deleted', 'is_edited', 'attachment','created_at','reactions',)
     list_filter = ('room__name', 'message_type', 'is_deleted', 'created_at')
     search_fields = ('content', 'sender__username', 'room__name')
     readonly_fields = ('created_at', 'updated_at')

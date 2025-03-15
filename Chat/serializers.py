@@ -58,10 +58,12 @@ class RoomSerializer(serializers.ModelSerializer):
     created_by = UserForRoomSerializer(read_only=True)
     last_message = serializers.SerializerMethodField()
     unread_count = serializers.SerializerMethodField()
+    last_read_timestamp = serializers.SerializerMethodField()
+    last_read_message_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Room
-        fields = ['id', 'name', 'description', 'members', 'room_avatar', 'is_active','unread_count', 'created_by', 'created_at', 'updated_at', 'last_message']
+        fields = ['id', 'name', 'description', 'members', 'room_avatar', 'is_active','unread_count', 'last_read_timestamp','last_read_message_id','created_by', 'created_at', 'updated_at', 'last_message']
         read_only_fields = ['created_by', 'created_at', 'updated_at']
 
     def create(self, validated_data):
@@ -90,11 +92,38 @@ class RoomSerializer(serializers.ModelSerializer):
 
         # If a last_read timestamp exists, count messages created after it
         if last_read:
-            unread_count = obj.messages.filter(created_at__gt=last_read).count()
+            unread_count = obj.messages.filter(created_at__gt=last_read).exclude(sender=request.user).count()
         else:
             unread_count = obj.messages.count()
 
         return unread_count
+    
+    def get_last_read_timestamp(self, obj):
+        request = self.context.get("request")
+        if request and request.user.is_authenticated:
+            try:
+                user_room_status = obj.user_statuses.get(user=request.user)
+                return user_room_status.last_read
+            except obj.user_statuses.model.DoesNotExist:
+                return None
+        return None
+    
+    def get_last_read_message_id(self, obj):
+        request = self.context.get("request")
+        if request and request.user.is_authenticated:
+            try:
+                user_room_status = obj.user_statuses.get(user=request.user)
+                last_read_timestamp = user_room_status.last_read
+                if last_read_timestamp:
+                    # Retrieve the latest message with created_at <= last_read timestamp
+                    last_read_message = obj.messages.filter(
+                        created_at__lte=last_read_timestamp
+                    ).order_by('-created_at').first()
+                    if last_read_message:
+                        return last_read_message.id
+            except obj.user_statuses.model.DoesNotExist:
+                return None
+        return None
 
 
 class EditRoomSerializer(serializers.ModelSerializer):
