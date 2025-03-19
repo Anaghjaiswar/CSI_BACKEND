@@ -36,3 +36,31 @@ class DomainAndYearWiseUserAPIView(APIView):
             result[year_key][domain_key].append(serialized)
 
         return Response(result, status=status.HTTP_200_OK)
+    
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from User.models import Domain
+from .serializers import DomainSerializer
+
+class DomainsByYearAPIView(APIView):
+    """
+    API to get a list of domains grouped by year.
+    Since the domains are the same for all years, we perform a single query.
+    """
+    def get(self, request, *args, **kwargs):
+        # Retrieve all domains in a single query
+        domains = Domain.objects.all()
+        serializer = DomainSerializer(domains, many=True)
+        
+        # Prepare a list of years based on the choices in the User model
+        years = []
+        for year_id, year_label in User.YEAR_CHOICES:
+            years.append({
+                "id": year_id,
+                "label": year_label,
+                "domains": serializer.data 
+            })
+        
+        return Response(years, status=status.HTTP_200_OK)

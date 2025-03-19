@@ -3,6 +3,20 @@ from .models import User
 from Domain.models import Domain
     
 
+class DomainSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Domain
+        fields = ['name']
+
+
+class UserSerializer(serializers.ModelSerializer):
+    photo = serializers.ImageField(use_url=True)
+    domain = DomainSerializer()
+    class Meta:
+        model = User
+        fields = ['id','first_name','last_name', 'domain','photo','year']
+
+
 class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -19,10 +33,6 @@ class UserListSerializer(serializers.ModelSerializer):
     def get_full_name(self, obj):
         return f"{obj.first_name} {obj.last_name}"
 
-class DomainSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Domain
-        fields = ['name']
 
 
 class MeetMyTeamUserSerializer(serializers.ModelSerializer):

@@ -143,3 +143,9 @@ class TaskSerializer(serializers.ModelSerializer):
             instance.groups.exclude(name__in=payload_group_names).delete()
 
         return instance
+    
+
+class TaskNameSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Task
+        fields = ['id', 'title']

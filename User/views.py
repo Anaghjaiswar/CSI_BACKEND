@@ -8,10 +8,9 @@ from rest_framework import status
 from django.core.mail import send_mail
 from django.conf import settings
 from django.contrib.auth import get_user_model  # Use this instead of directly importing User
-from .serializers import  RegisterSerializer, UserListSerializer, MeetMyTeamUserSerializer
+from .serializers import  RegisterSerializer, UserListSerializer, MeetMyTeamUserSerializer, UserSerializer
 from .models import PasswordResetOTP
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.parsers import MultiPartParser, FormParser
 from django.utils.crypto import get_random_string
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.exceptions import AuthenticationFailed
@@ -20,6 +19,7 @@ import random
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 from decouple import config
+from django.db.models import Q
 
 User = get_user_model()
 
@@ -165,6 +165,27 @@ class ResetPasswordWithOTPAPIView(APIView):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+class MembersSearchAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self,request, *args, **kwargs):
+        query = request.query_params.get('q', '').strip()
+
+        if not query: 
+            return Response(
+                {"error":"please provide a search query"},status=status.HTTP_400_BAD_REQUEST
+            )
+
+        users=User.objects.filter(
+            Q(first_name__icontains=query)|Q(last_name__icontains=query)
+        )
+
+        serializer = UserSerializer(users, many=True)
+        return Response(serializer.data,status=status.HTTP_200_OK)
+        
+
+
+
 
 class MeetOurTeamAPIView(APIView):
     # permission_classes =[IsAuthenticated]
@@ -189,7 +210,7 @@ class MeetOurTeamAPIView(APIView):
         except Exception as e:
             return Response({"error": "An error occurred while processing the request.", "details": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
- # Load client IDs from environment variables
+
 ANDROID_CLIENT_ID = config("GOOGLE_ANDROID_CLIENT_ID")
 IOS_CLIENT_ID = config("GOOGLE_IOS_CLIENT_ID")
 

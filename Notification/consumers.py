@@ -2,11 +2,14 @@
 
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
+import logging
+logger = logging.getLogger(__name__)
 
 class NotificationConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         # Ensure that only authenticated users can connect
         self.user = self.scope["user"]
+        print("Scope User:", self.user)
         if self.user.is_anonymous:
             await self.close()
         else:
@@ -19,7 +22,8 @@ class NotificationConsumer(AsyncWebsocketConsumer):
             await self.accept()
 
     async def disconnect(self, close_code):
-        print(self)
+        print(f"Disconnecting WebSocket for group: {self.group_name} with code: {close_code}")
+        # await self.channel_layer.group_discard(self.group_name, self.channel_name)
         await self.channel_layer.group_discard(
             self.group_name,
             self.channel_name

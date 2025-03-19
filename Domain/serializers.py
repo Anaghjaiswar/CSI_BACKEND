@@ -16,3 +16,8 @@ class MemberSimpleSerializer(serializers.ModelSerializer):
         # Using get_full_name method if available, otherwise constructing it.
         return obj.get_full_name()
 
+
+class DomainSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Domain
+        fields = ['id', 'name']

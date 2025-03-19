@@ -1,21 +1,59 @@
 from rest_framework import serializers
 from .models import Room, Message
 from django.contrib.auth import get_user_model
+from django.utils import timezone
+from datetime import timedelta
 
 User = get_user_model()
+
+class SimpleUserSerializer(serializers.ModelSerializer):
+    name = serializers.SerializerMethodField()
+    photo = serializers.ImageField(use_url=True)
+
+    class Meta:
+        model = User
+        fields = ['id', 'name', 'photo']
+
+    def get_name(self, obj):
+        # Concatenate first and last names; adjust as needed.
+        full_name = f"{obj.first_name} {obj.last_name}".strip()
+        return full_name if full_name else obj.first_name
+    
+
+class ParentMessageSerializer(serializers.ModelSerializer):
+    sender = SimpleUserSerializer(read_only=True)
+
+    class Meta:
+        model = Message
+        fields = ['id', 'content', 'sender']
 
 class UserSerializer(serializers.ModelSerializer):
     # return cloudinary url of photo use_url=True
     photo = serializers.ImageField(use_url=True)
+    current_status = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ["id", "first_name", "last_name", "role", "photo", "year"]
+        fields = ["id", "first_name", "last_name", "role", "photo", "year","current_status"]
+
+    def get_current_status(self, obj):
+        now = timezone.now()
+        if hasattr(obj, 'last_seen') and obj.last_seen:
+
+            local_last_seen = timezone.localtime(obj.last_seen)
+            if now - obj.last_seen < timedelta(minutes=2):
+                return "online"
+            else:
+                return local_last_seen.strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            return "offline"
 
 
 class MessageSerializer(serializers.ModelSerializer):
     sender = UserSerializer(read_only=True)
     attachment = serializers.ImageField(use_url=True)
     is_self = serializers.SerializerMethodField()
+    parent_message = ParentMessageSerializer(read_only=True)
     
 
     class Meta:
