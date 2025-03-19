@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     'Task',   
     'Notification',
     'Attendance',
+    'Announcement',
 ]
 
 
@@ -86,6 +87,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'core.middleware.update_last_seen_middleware.UpdateLastSeenMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
