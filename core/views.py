@@ -64,6 +64,7 @@ class HomepageCountsAPIView(APIView):
     def get(self, request, *args, **kwargs):
         user = request.user
         first_name = user.first_name
+        year = user.year
 
         # 1. Count tasks assigned to the user (only pending and current tasks)
         tasks_count = Task.objects.filter(
@@ -96,6 +97,7 @@ class HomepageCountsAPIView(APIView):
 
         response_data = {
             "name": first_name,
+            "year": year,
             "tasks_assigned": tasks_count,
             "chat_groups_with_unread": unread_chat_count,
             "announcement_count": announcements_count,

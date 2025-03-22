@@ -81,8 +81,10 @@ class CustomLoginView(ObtainAuthToken):
 
         # Check if token already exists, create if not
         token, created = Token.objects.get_or_create(user=user)
+        year=user.year
 
         return Response({
+            "year": year,
             "token": token.key,
             "message": f"Welcome {user.first_name}!"
         })
