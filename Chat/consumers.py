@@ -87,13 +87,17 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         # Send push notification using your existing synchronous utility, wrapped in sync_to_async
                         from Notification.utils import send_push_notification_individual
                         
-                        response = await sync_to_async(send_push_notification_individual)(
-                            user=recipient,
-                            title=push_title,
-                            body=push_body,
-                            click_action=push_click_action
-                        )
-                        print(response)
+                        try:
+                            # Send push notification using your synchronous utility, wrapped in sync_to_async
+                            response = await sync_to_async(send_push_notification_individual)(
+                                user=recipient,
+                                title=push_title,
+                                body=push_body,
+                                click_action=push_click_action
+                            )
+                            print(f"Push notification sent to recipient {recipient.id}: {response}")
+                        except Exception as e:
+                            print(f"Error sending push notification to recipient {recipient.id}: {e}")
 
                 sender_details = await sync_to_async(self.get_sender_details)(sender)
                 parent_message = None
@@ -107,20 +111,24 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         return
                     
                 message_id, created_at = await self.save_message(message, message_type, sender, attachment, mentions,parent_message)
-                await self.channel_layer.group_send(
-                    self.room_group_name,
-                    {
-                        "type": "chat_message",
-                        "message": message,
-                        "sender": sender_details,
-                        "message_type": message_type,
-                        "attachment": attachment,
-                        "id": message_id,
-                        "created_at": created_at.isoformat(),
-                        "room": self.room_id,
-                        "parent_message_id": parent_message_id,
-                    },
-                )
+                try:
+                    await self.channel_layer.group_send(
+                        self.room_group_name,
+                        {
+                            "type": "chat_message",
+                            "message": message,
+                            "sender": sender_details,
+                            "message_type": message_type,
+                            "attachment": attachment,
+                            "id": message_id,
+                            "created_at": created_at.isoformat(),
+                            "room": self.room_id,
+                            "parent_message_id": parent_message_id,
+                        },
+                    )
+                except Exception as e:
+                    print("Error during group_send:", e)
+                    
                 if mentions:
                     from User.models import User
                     from Notification.models import Notification
