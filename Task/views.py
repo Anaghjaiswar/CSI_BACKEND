@@ -8,7 +8,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser
 import json
 from Notification.models import Notification
-from Notification.utils import notify_user
+from Notification.utils import notify_user, send_push_notification_individual
 
 
 class TaskCreateAPIView(APIView):
@@ -50,7 +50,7 @@ class TaskCreateAPIView(APIView):
                         message=f"You have been assigned a new task: {task.title}",
                         is_read=False
                     )
-                    # Prepare the payload for real-time delivery
+                    
                     notification_data = {
                         "id": notification.id,
                         "event_type": notification.event_type,
@@ -58,8 +58,15 @@ class TaskCreateAPIView(APIView):
                         "url": notification.url,
                         "created_at": notification.created_at.isoformat(),
                     }
-                    # Use your utility function to send the notification via WebSocket
+                    
                     notify_user(member, notification_data)
+                    responses = send_push_notification_individual(
+                        user=member,
+                        title="New Task Assigned",
+                        body=f"You have been assigned a new task: {task.title}",
+                        click_action=f"open_task_overview?task_id={task.id}"
+                    )
+                    
 
 
             return Response(
@@ -107,8 +114,8 @@ class EditTaskAPIView(APIView):
             except json.JSONDecodeError:
                 return Response({"groups": "Invalid JSON format for groups."},
                                 status=status.HTTP_400_BAD_REQUEST)
-        # Debug logging (optional)
-        print("DEBUG parsed data for update:", data)
+
+        # print("DEBUG parsed data for update:", data)
 
         serializer = TaskSerializer(task, data=data, context={'request': request})
         if serializer.is_valid():
