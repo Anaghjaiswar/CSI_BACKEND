@@ -1,11 +1,26 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from asgiref.sync import sync_to_async
+from django.core.cache import cache
+
+
+
+ONLINE_USERS_KEY = "online_users"
+
+def should_send_push_notification(user_id):
+    online_users = cache.get(ONLINE_USERS_KEY, set())
+    return user_id not in online_users
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.room_id = self.scope["url_route"]["kwargs"]["room_id"]
         self.room_group_name = f"chat_{self.room_id}"
+        user = self.scope["user"]
+
+        if user.is_authenticated:
+            online_users = cache.get(ONLINE_USERS_KEY, set())
+            online_users.add(user.id)
+            cache.set(ONLINE_USERS_KEY, online_users)
 
         # Join room group
         await self.channel_layer.group_add(
@@ -16,6 +31,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.accept()
 
     async def disconnect(self, close_code):
+        user = self.scope["user"]
+
+        if user.is_authenticated:
+            online_users = cache.get(ONLINE_USERS_KEY, set())
+            if user.id in online_users:
+                online_users.remove(user.id)
+                cache.set(ONLINE_USERS_KEY, online_users)
+
+
         # Leave room group
         await self.channel_layer.group_discard(
             self.room_group_name,
@@ -46,6 +70,31 @@ class ChatConsumer(AsyncWebsocketConsumer):
             parent_message_id = text_data_json.get("parent_message_id", None)
 
             if sender.is_authenticated:
+                from .models import Room
+                room_obj = await sync_to_async(Room.objects.get)(id=self.room_id)
+                room_name = room_obj.name
+
+                # Exclude the sender from the recipients
+                recipients = await sync_to_async(list)(room_obj.members.exclude(id=sender.id))
+                
+                for recipient in recipients:
+                    # Check if recipient is offline
+                    if await sync_to_async(should_send_push_notification)(recipient.id):
+                        push_title = f"New message in {room_name}"
+                        push_body = message if len(message) < 50 else message[:50] + "..."
+                        push_click_action = f"OPEN_CHAT?room_id={self.room_id}"
+
+                        # Send push notification using your existing synchronous utility, wrapped in sync_to_async
+                        from Notification.utils import send_push_notification_individual
+                        
+                        response = await sync_to_async(send_push_notification_individual)(
+                            user=recipient,
+                            title=push_title,
+                            body=push_body,
+                            click_action=push_click_action
+                        )
+                        print(response)
+
                 sender_details = await sync_to_async(self.get_sender_details)(sender)
                 parent_message = None
 
@@ -379,3 +428,5 @@ class ChatConsumer(AsyncWebsocketConsumer):
         from .models import Room
         room = Room.objects.get(id=room_id)
         return room.name
+    
+
