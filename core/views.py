@@ -98,7 +98,7 @@ class HomepageCountsAPIView(APIView):
         announcements_count = Announcement.objects.filter(receivers=user).count()
 
         response_data = {
-            "photo":photo,
+            "photo":photo.url if photo else None,
             "name": first_name,
             "year": year,
             "tasks_assigned": tasks_count,
