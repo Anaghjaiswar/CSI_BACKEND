@@ -66,6 +66,8 @@ class HomepageCountsAPIView(APIView):
         first_name = user.first_name
         year = user.year
 
+        photo= user.photo
+
         # 1. Count tasks assigned to the user (only pending and current tasks)
         tasks_count = Task.objects.filter(
             groups__members=user,
@@ -96,6 +98,7 @@ class HomepageCountsAPIView(APIView):
         announcements_count = Announcement.objects.filter(receivers=user).count()
 
         response_data = {
+            "photo":photo,
             "name": first_name,
             "year": year,
             "tasks_assigned": tasks_count,
