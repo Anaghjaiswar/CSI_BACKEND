@@ -19,22 +19,39 @@ def warm_up(request):
     return JsonResponse({"message": "Server is warm!"})
 
 
-class HomepageEventsAPIView(APIView):
+# class HomepageEventsAPIView(APIView):
+#     permission_classes = [IsAuthenticated]
+
+#     def get(self, request, *args, **kwargs):
+#         ongoing_events = Event.objects.filter(status="ongoing")
+#         upcoming_events = Event.objects.filter(status="upcoming")
+        
+#         serialized_ongoing = EventPosterSerializer(ongoing_events, many=True).data
+#         serialized_upcoming = EventPosterSerializer(upcoming_events, many=True).data
+        
+#         response_data = {
+#             "ongoing_events": serialized_ongoing,
+#             "upcoming_events": serialized_upcoming
+#         }
+        
+#         return Response(response_data, status=status.HTTP_200_OK)
+
+class HomepageOngoingEventsAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
         ongoing_events = Event.objects.filter(status="ongoing")
-        upcoming_events = Event.objects.filter(status="upcoming")
-        
         serialized_ongoing = EventPosterSerializer(ongoing_events, many=True).data
+        return Response(serialized_ongoing, status=status.HTTP_200_OK)
+
+
+class HomepageUpcomingEventsAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        upcoming_events = Event.objects.filter(status="upcoming")
         serialized_upcoming = EventPosterSerializer(upcoming_events, many=True).data
-        
-        response_data = {
-            "ongoing_events": serialized_ongoing,
-            "upcoming_events": serialized_upcoming
-        }
-        
-        return Response(response_data, status=status.HTTP_200_OK)
+        return Response(serialized_upcoming, status=status.HTTP_200_OK)
 
 
 
