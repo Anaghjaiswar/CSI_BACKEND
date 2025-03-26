@@ -3,8 +3,12 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
 from .models import Attendance
-from .serializers import CheckInSerializer, CheckOutSerializer
+from .serializers import CheckInSerializer, CheckOutSerializer, DailyAttendanceSerializer
 from .utils import calculate_distance, LAB_LATITUDE, LAB_LONGITUDE, RADIUS_THRESHOLD
+from datetime import timedelta
+from django.utils import timezone
+from rest_framework.views import APIView
+
 
 class CheckInView(views.APIView):
     permission_classes = [IsAuthenticated]
@@ -68,3 +72,81 @@ class CheckOutView(views.APIView):
             message = "Check-out successful. See you tomorrow!"
             return Response({'message': message}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class Last49DaysAttendanceView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, format=None):
+        # Today is the last day in the 49-day window
+        today = timezone.now().date()
+        # Start date is 48 days before today (inclusive of today makes 49 days)
+        start_date = today - timedelta(days=48)
+        
+        # Generate a list for each day in the 49-day period
+        days_list = []
+        for i in range(49):
+            day = start_date + timedelta(days=i)
+            try:
+                record = Attendance.objects.get(user=request.user, date=day)
+                attended = bool(record.check_in_time)
+            except Attendance.DoesNotExist:
+                attended = False
+            days_list.append({
+                "date": day,
+                "attended": attended,
+            })
+        
+        # Split the 49 days into chunks of 7 days each
+        pages = [days_list[i:i+7] for i in range(0, 49, 7)]
+        # Reverse so that the latest 7 days (ending on today) become page 1
+        pages.reverse()
+        total_pages = len(pages)
+        
+        # Get the page number from query params (default to page 1)
+        try:
+            page = int(request.query_params.get('page', 1))
+        except ValueError:
+            return Response({"detail": "Invalid page number."}, status=400)
+        
+        if page < 1 or page > len(pages):
+            return Response({"detail": "Page out of range."}, status=400)
+        
+        week_data = pages[page - 1]
+        
+        # For page 1 (the latest block) all days are <= today
+        serializer = DailyAttendanceSerializer(week_data, many=True)
+        
+        # Determine month info for this page. If all days are in one month, include "month"
+        # otherwise, return a list under "months".
+        month_set = { day["date"].strftime('%B') for day in week_data }
+        if len(month_set) == 1:
+            month_info = {"month": month_set.pop()}
+        else:
+            month_info = {"months": list(month_set)}
+
+
+        query_params = request.query_params.copy()
+
+        # Build next URL if exists.
+        if page < total_pages:
+            query_params["page"] = page + 1
+            next_url = f"https://csi-backend-wvn0.onrender.com/api/attendance/weekly/?{query_params.urlencode()}"
+        else:
+            next_url = None
+
+        # Build previous URL if exists.
+        if page > 1:
+            query_params["page"] = page - 1
+            previous_url = f"https://csi-backend-wvn0.onrender.com/api/attendance/weekly/?{query_params.urlencode()}"
+        else:
+            previous_url = None
+        
+        response_data = {
+            "page": page,
+            "total_pages": total_pages,
+            "next": next_url,
+            "previous": previous_url,
+            "results": serializer.data,
+        }
+        response_data.update(month_info)
+        return Response(response_data)

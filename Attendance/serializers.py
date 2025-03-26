@@ -20,3 +20,15 @@ class CheckInSerializer(serializers.ModelSerializer):
 class CheckOutSerializer(serializers.Serializer):
     check_out_latitude = serializers.FloatField()
     check_out_longitude = serializers.FloatField()
+
+class DailyAttendanceSerializer(serializers.Serializer):
+    date = serializers.DateField()
+    attended = serializers.BooleanField()
+    day_name = serializers.SerializerMethodField()
+    month_name = serializers.SerializerMethodField()
+
+    def get_day_name(self, obj):
+        return obj["date"].strftime('%A')
+    
+    def get_month_name(self, obj):
+        return obj["date"].strftime('%B')
