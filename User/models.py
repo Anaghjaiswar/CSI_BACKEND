@@ -52,6 +52,21 @@ class User(AbstractBaseUser, PermissionsMixin):
         ('4th', '4th Year'),
     ]
 
+    BRANCH_CHOICES = [
+        ('CSE', 'CSE'),
+        ('CS', 'CS'),
+        ('CS-IT', 'CS-IT'),
+        ('CSE-DS', 'CSE-DS'),
+        ('CS-HINDI', 'CS-HINDI'),
+        ('CSE-AIML', 'CSE-AIML'),
+        ('IT', 'IT'),
+        ('AIML', 'AIML'),
+        ('ECE', 'ECE'),
+        ('ME', 'ME'),
+        ('EN', 'EN'),
+        ('CIVIL', 'CIVIL'),
+    ]
+
     email = models.EmailField(unique=True, validators=[validate_akgec_email])
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50, blank=True, null=True)
@@ -63,6 +78,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     role = models.CharField(max_length=10, choices=ROLE_CHOICES)
     bio = models.TextField(blank=True, null=True)
     year = models.CharField(max_length=10, choices=YEAR_CHOICES)
+    branch = models.CharField(max_length=10, choices=BRANCH_CHOICES, blank=True, null=True)
+    dob = models.DateField(blank=True, null=True)
+    achievements = models.TextField(blank=True, null=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='active')
     is_staff = models.BooleanField(default=False)  # Required for admin interface
     is_active = models.BooleanField(default=True)  # Required for authentication
@@ -70,6 +88,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     updated_at = models.DateTimeField(auto_now=True)
     is_verified = models.BooleanField(default=False)
     last_seen = models.DateTimeField(null=True, blank=True)
+    is_completed = models.BooleanField(default=False)
+    hosteller = models.BooleanField(default=False)
 
     objects = UserManager()
 

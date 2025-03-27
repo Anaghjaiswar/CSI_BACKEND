@@ -118,6 +118,7 @@ class HomepageCountsAPIView(APIView):
             "photo":photo.url if photo else None,
             "name": first_name,
             "year": year,
+            "is_completed": request.user.is_completed,
             "tasks_assigned": tasks_count,
             "chat_groups_with_unread": unread_chat_count,
             "announcement_count": announcements_count,

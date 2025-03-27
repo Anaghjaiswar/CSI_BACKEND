@@ -7,8 +7,8 @@ from rest_framework.generics import ListAPIView
 from rest_framework import status
 from django.core.mail import send_mail
 from django.conf import settings
-from django.contrib.auth import get_user_model  # Use this instead of directly importing User
-from .serializers import  RegisterSerializer, UserListSerializer, MeetMyTeamUserSerializer, UserSerializer
+from django.contrib.auth import get_user_model 
+from .serializers import  RegisterSerializer, UserListSerializer, MeetMyTeamUserSerializer, UserSerializer, UserProfileFillSerializer
 from .models import PasswordResetOTP
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.utils.crypto import get_random_string
@@ -32,10 +32,18 @@ class RegisterAPIView(APIView):
             
             # Create the user
             validated_data = serializer.validated_data
+            year = validated_data.get('year')
+            if year == '2nd':
+                role = 'member'
+            elif year in ['3rd', '4th']:
+                role = 'admin'
+ 
             user = User.objects.create(
                 email=validated_data['email'],
                 first_name=validated_data['first_name'],
                 last_name=validated_data['last_name'],
+                year=year,
+                role=role,
             )
             user.set_password(generated_password)  # Set the generated password
             user.save()
@@ -81,11 +89,28 @@ class CustomLoginView(ObtainAuthToken):
 
         # Check if token already exists, create if not
         token, created = Token.objects.get_or_create(user=user)
-        year=user.year
+
+        required_fields = {
+            "photo": user.photo,
+            "branch": user.branch,
+            "domain": user.domain,
+            "dob": user.dob,
+            "linkedin_url": user.linkedin_url,
+            "github_url": user.github_url,
+            "bio": user.bio,
+        }
+
+        missing_fields = [field for field, value in required_fields.items() if not value]
+        profile_completed = (len(missing_fields) == 0)
+        user.is_completed = profile_completed
+        user.save(update_fields=["is_completed"])
+
 
         return Response({
-            "year": year,
+            "year": user.year,
             "token": token.key,
+            "is_completed": user.is_completed,
+            "missing_fields": missing_fields,
             "message": f"Welcome {user.first_name}!"
         })
 
@@ -186,9 +211,6 @@ class MembersSearchAPIView(APIView):
         return Response(serializer.data,status=status.HTTP_200_OK)
         
 
-
-
-
 class MeetOurTeamAPIView(APIView):
     # permission_classes =[IsAuthenticated]
 
@@ -211,7 +233,6 @@ class MeetOurTeamAPIView(APIView):
 
         except Exception as e:
             return Response({"error": "An error occurred while processing the request.", "details": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
 
 ANDROID_CLIENT_ID = config("GOOGLE_ANDROID_CLIENT_ID")
 IOS_CLIENT_ID = config("GOOGLE_IOS_CLIENT_ID")
@@ -268,3 +289,46 @@ class StudentGoogleLoginAPIView(APIView):
             {"token": token.key, "message": "Student logged in successfully."},
             status=status.HTTP_200_OK
         )
+    
+
+class ProfileFillView(APIView):
+    """
+    POST endpoint to update profile details for the authenticated user.
+    Accepts photo, branch, domain, dob, linkedin_url, bio, and github_url.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        # Use partial=True to update only the provided fields.
+        serializer = UserProfileFillSerializer(instance=request.user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            response_data = serializer.data
+            # Append additional fields from the registered user data.
+            response_data['full_name'] = f"{request.user.first_name} {request.user.last_name}".strip()
+            response_data['year'] = request.user.year
+            return Response(response_data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+class ProfileDetailAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, **args):
+        user = request.user
+        serializer = UserProfileFillSerializer(user)
+        serializer_data = serializer.data
+        serializer_data['full_name'] = f"{request.user.first_name} {request.user.last_name}".strip()
+        serializer_data['year'] = request.user.year
+        return Response(serializer_data, status=status.HTTP_200_OK)
+
+class EditProfileDetailsAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request, *args, **kwargs):
+        user = request.user
+        serializer = UserProfileFillSerializer(instance=request.user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import RegisterAPIView,CustomLoginView,CustomLogoutView,UserListView,ForgotPasswordOTPAPIView,ResetPasswordWithOTPAPIView, MeetOurTeamAPIView, StudentGoogleLoginAPIView, MembersSearchAPIView
+from .views import RegisterAPIView,CustomLoginView,CustomLogoutView,UserListView,ForgotPasswordOTPAPIView,ResetPasswordWithOTPAPIView, MeetOurTeamAPIView, StudentGoogleLoginAPIView, MembersSearchAPIView, ProfileFillView, ProfileDetailAPIView
 
 
 urlpatterns = [
@@ -12,4 +12,6 @@ urlpatterns = [
     path("meet-our-team/", MeetOurTeamAPIView.as_view(), name="meet-our-team"),
     path('search/', MembersSearchAPIView.as_view(), name='search-users'),
     path('student/google-login/', StudentGoogleLoginAPIView.as_view(), name='student-google-login'),
+    path('profile/fill/', ProfileFillView.as_view(), name='profile-fill'),
+    path('profile/detail/', ProfileDetailAPIView.as_view(), name='profile-detail'),
 ]

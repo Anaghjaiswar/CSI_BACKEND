@@ -6,7 +6,7 @@ from Domain.models import Domain
 class DomainSerializer(serializers.ModelSerializer):
     class Meta:
         model = Domain
-        fields = ['name']
+        fields = ['id','name']
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -45,6 +45,22 @@ class MeetMyTeamUserSerializer(serializers.ModelSerializer):
         fields = ['id', 'photo', 'full_name', 'domain']
 
     def get_full_name(self, obj):
-        return obj.get_full_name()
+        return obj.get_full_name()        
 
 
+class UserProfileFillSerializer(serializers.ModelSerializer):
+    photo = serializers.ImageField(use_url=True)
+    domain = DomainSerializer()
+    class Meta:
+        model = User
+        fields = [
+            'photo',
+            'branch',
+            'domain',  
+            'dob',
+            'linkedin_url',
+            'bio',
+            'github_url',
+            'achievements',
+            'hosteller',
+        ]
