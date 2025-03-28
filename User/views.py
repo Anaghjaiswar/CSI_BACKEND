@@ -4,12 +4,12 @@ from django.contrib.auth import authenticate
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.generics import ListAPIView
-from rest_framework import status
+from rest_framework import status, generics
 from django.core.mail import send_mail
 from django.conf import settings
 from django.contrib.auth import get_user_model 
 from .serializers import  RegisterSerializer, UserListSerializer, MeetMyTeamUserSerializer, UserSerializer, UserProfileFillSerializer
-from .models import PasswordResetOTP
+from .models import PasswordResetOTP, User
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.utils.crypto import get_random_string
 from rest_framework.authtoken.views import ObtainAuthToken
@@ -20,6 +20,9 @@ from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
 from decouple import config
 from django.db.models import Q
+from .serializers import (StudentRegistrationSerializer,
+                          EmailVerificationSerializer, LoginSerializer)
+from django.utils import timezone
 
 User = get_user_model()
 
@@ -332,3 +335,85 @@ class EditProfileDetailsAPIView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+class StudentRegistrationView(generics.CreateAPIView):
+    serializer_class = StudentRegistrationSerializer
+
+    def perform_create(self, serializer):
+        user = serializer.save()
+        otp_code = f"{random.randint(100000, 999999)}"
+        PasswordResetOTP.objects.create(user=user, otp=otp_code)
+
+        send_mail(
+            'Your Email Verification OTP',
+            f'Your OTP is {otp_code}. It is valid for 10 minutes.',
+            settings.DEFAULT_FROM_EMAIL,
+            [user.email],
+            fail_silently=False,  # Set to False to raise errors if email sending fails
+        )
+
+    def create(self, request, *args, **kwargs):
+        response = super().create(request, *args, **kwargs)
+        response.data = {
+            'message': 'Registration successful. Please verify your email using the OTP sent to your email.'
+        }
+        return response
+    
+class VerifyEmailView(generics.GenericAPIView):
+    serializer_class = EmailVerificationSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        otp_obj = serializer.validated_data['otp_obj']
+        otp_obj.is_used = True
+        otp_obj.save(update_fields=['is_used'])
+        user.is_active = True
+        user.is_verified = True
+        user.save(update_fields=['is_active', 'is_verified'])
+        return Response({'message': 'Email verified successfully. Your account is now active.'}, status=status.HTTP_200_OK)
+    
+
+class ResendOTPView(generics.GenericAPIView):
+    def post(self, request, *args, **kwargs):
+        email = request.data.get('email')
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({'error': 'Invalid email address.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        otp_code = f"{random.randint(100000, 999999)}"
+        otp_obj = PasswordResetOTP.objects.create(user=user, otp=otp_code)
+        send_mail(
+            'Your Email Verification OTP',
+            f'Your OTP is {otp_code}. It is valid for 10 minutes.',
+            settings.DEFAULT_FROM_EMAIL,
+            [user.email],
+            fail_silently=True,
+        )
+        return Response({'message': 'OTP sent successfully.'}, status=status.HTTP_200_OK)
+
+
+class LoginView(generics.GenericAPIView):
+    serializer_class = LoginSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        token, created = Token.objects.get_or_create(user=user)
+        return Response({
+            'token': token.key,
+            'message': 'Login successful.'
+        }, status=status.HTTP_200_OK)
+    
+
+class LogoutView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        # Delete the token to log the user out.
+        request.user.auth_token.delete()
+        return Response({"message": "Successfully logged out."}, status=status.HTTP_200_OK)
