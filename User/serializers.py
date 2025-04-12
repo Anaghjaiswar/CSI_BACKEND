@@ -26,7 +26,7 @@ class UserSerializer(serializers.ModelSerializer):
 class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['email', 'first_name', 'last_name']
+        fields = ['email', 'first_name', 'last_name','year']
 
 
 class UserListSerializer(serializers.ModelSerializer):
@@ -56,7 +56,11 @@ class MeetMyTeamUserSerializer(serializers.ModelSerializer):
 
 class UserProfileFillSerializer(serializers.ModelSerializer):
     photo = serializers.ImageField(use_url=True)
-    domain = DomainSerializer()
+    domain = serializers.SlugRelatedField(
+        queryset=Domain.objects.all(),  
+        slug_field='name'               
+    )
+    
     class Meta:
         model = User
         fields = [
