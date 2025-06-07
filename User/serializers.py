@@ -76,8 +76,7 @@ class UserProfileFillSerializer(serializers.ModelSerializer):
         ]
 
 class StudentRegistrationSerializer(serializers.Serializer):
-    first_name = serializers.CharField(max_length=50)
-    last_name = serializers.CharField(max_length=50, required=False)
+    full_name    = serializers.CharField(max_length=150, write_only=True)
     email = serializers.EmailField()
     password = serializers.CharField(
         write_only=True,
@@ -91,6 +90,10 @@ class StudentRegistrationSerializer(serializers.Serializer):
     gender = serializers.ChoiceField(choices=StudentProfile.GENDER_CHOICES)
 
     def create(self, validated_data):
+        full_name = validated_data.pop('full_name')
+        parts     = full_name.strip().split(' ', 1)
+        first_name = parts[0]
+        last_name  = parts[1] if len(parts) > 1 else ''
         branch = validated_data.pop('branch')
         year = validated_data.pop('year')
         student_number = validated_data.pop('student_number')
@@ -100,11 +103,16 @@ class StudentRegistrationSerializer(serializers.Serializer):
         email = validated_data.get('email')
         try:
             user = User.objects.get(email=email)
-            user.first_name = validated_data.get('first_name')
-            user.last_name = validated_data.get('last_name', user.last_name)
+            user.first_name = first_name
+            user.last_name = last_name
             user.save(update_fields=['first_name', 'last_name'])
         except User.DoesNotExist:
-            user = User.objects.create_user(**validated_data)
+           user = User.objects.create_user(
+                first_name=first_name,
+                last_name=last_name,
+                **validated_data
+            )
+
 
         student_group, _ = Group.objects.get_or_create(name="student")
         if not user.groups.filter(name="student").exists():
@@ -124,10 +132,8 @@ class StudentRegistrationSerializer(serializers.Serializer):
         return user
 
     def to_representation(self, instance):
-        # Only return fields that exist on User.
         return {
-            'first_name': instance.first_name,
-            'last_name': instance.last_name,
+            'full_name': f"{instance.first_name} {instance.last_name}".strip(),
             'email': instance.email
         }
 
@@ -160,6 +166,8 @@ class EmailVerificationSerializer(serializers.Serializer):
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True, style={'input_type': 'password'})
+    
+
 
     def validate(self, attrs):
         email = attrs.get('email')

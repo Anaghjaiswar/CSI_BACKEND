@@ -5,25 +5,6 @@ from django.conf import settings
 User = settings.AUTH_USER_MODEL
 
 class Room(models.Model):
-    ROOM_NAME_CHOICES = {
-        "domain_based": [
-            ("backend_2_3", "Backend (2+3)"),
-            ("frontend_2_3", "Frontend (2+3)"),
-            ("ml_2_3", "Machine Learning (2+3)"),
-            ("designers_2_3", "Designers (2+3)"),
-            ("app_dev_2_3", "App Development (2+3)"),
-        ],
-        "year_based": [
-            ("2nd_year", "2nd Year"),
-            ("3rd_year", "3rd Year"),
-            ("4th_year", "4th Year"),
-        ],
-        "general_chat": [
-            ("CSI_2_3", "CSI (2+3)"),
-            ("CSI_2_3_4", "CSI (2+3+4)"),
-        ],
-    }
-
     name = models.CharField(max_length=50, unique=True)
     description = models.TextField(blank=True, null=True)
     members = models.ManyToManyField(

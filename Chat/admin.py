@@ -27,7 +27,14 @@ class RoomAdmin(admin.ModelAdmin):
         """Display the total number of members in the room."""
         return obj.members.count()
     
+    def save_model(self, request, obj, form, change):
+        if not obj.pk:  # If the object is being created
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)
+    
     total_members.short_description = 'Total Members'
+
+
 
 
 @admin.register(Message)
