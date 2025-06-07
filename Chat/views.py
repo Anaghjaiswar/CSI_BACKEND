@@ -1,10 +1,13 @@
+from rest_framework.generics import CreateAPIView
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from django.shortcuts import get_object_or_404
 from .models import Room, Message, UserRoomStatus
-from .serializers import RoomSerializer, MessageSerializer, UserSerializer, EditRoomSerializer, RoomListSerializer
+from .serializers import MessageUploadSerializer, RoomSerializer, MessageSerializer, UserSerializer, EditRoomSerializer, RoomListSerializer
 from django.contrib.auth import get_user_model
 from rest_framework.exceptions import NotFound, PermissionDenied
 from django.db.models import Q
@@ -324,3 +327,46 @@ class UserGroupMembersSearchAPIView(APIView):
             )
         serializer = UserSerializer(members, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class MessageUploadView(CreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class   = MessageUploadSerializer
+
+    def perform_create(self, serializer):
+        room_id = self.kwargs["room_id"]
+        room = get_object_or_404(Room, id=room_id, is_active=True)
+
+        # ensure membership
+        if self.request.user not in room.members.all():
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("Not a member of this room.")
+
+        # save with explicit fields
+        msg = serializer.save(
+            room=room,
+            sender=self.request.user,
+            message_type=(
+                "image" if serializer.validated_data["attachment"].content_type.startswith("image/")
+                else "file"
+            )
+        )
+
+        # broadcast over Channels
+        channel_layer = get_channel_layer()
+        payload = {
+            "type":         "chat_message",
+            "message":      msg.content,
+            "attachment":   msg.attachment.url,
+            "sender":       UserSerializer(msg.sender).data,
+            "message_type": msg.message_type,
+            "id":           msg.id,
+            "created_at":   msg.created_at.isoformat(),
+            "room":         room_id,
+            "parent_message_id": getattr(msg.parent_message, "id", None),
+        }
+        async_to_sync(channel_layer.group_send)(f"chat_{room_id}", payload)
+
+    def get_queryset(self):
+        # not used, but needed for routing
+        return Message.objects.none()

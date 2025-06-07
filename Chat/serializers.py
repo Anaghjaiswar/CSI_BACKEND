@@ -195,3 +195,17 @@ class RoomListSerializer(serializers.ModelSerializer):
         model = Room
         fields = ["id", "name", "description", "room_avatar", "created_by","created_at", "updated_at", "members_count"]
         read_only_fields = ["created_by", "created_at", "updated_at", "members_count"]
+
+
+class MessageUploadSerializer(serializers.ModelSerializer):
+    # only allow attachment + optional text
+    content      = serializers.CharField(required=False, allow_blank=True)
+    attachment   = serializers.FileField()
+
+    class Meta:
+        model  = Message
+        fields = ["content", "attachment", "parent_message"]  # include parent if you support threads
+
+    def create(self, validated_data):
+        # we’ll set room & sender in the view
+        return Message.objects.create(**validated_data)

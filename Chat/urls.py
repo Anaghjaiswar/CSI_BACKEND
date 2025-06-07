@@ -1,5 +1,6 @@
 from django.urls import path
 from .views import (
+    MessageUploadView,
     UserRoomsAPIView,
     RoomMembersAPIView,
     RoomMessagesAPIView,
@@ -23,6 +24,7 @@ urlpatterns = [
     path('create-group/', CreateRoomAPIView.as_view(), name='create-room'),
     path('delete-group/<int:room_id>/', DeleteRoomAPIView.as_view(), name='delete-room'),
     path('edit-group/<int:room_id>/', EditRoomAPIView.as_view(), name='edit-room'),
+    path("groups/<int:room_id>/messages/upload/",MessageUploadView.as_view(),name="message-upload"),
     path('group/<int:room_id>/remove-yourself/', RemoveYourselfFromRoomAPIView.as_view(), name='remove-yourself-from-room'),
     path('group/<int:room_id>/transfer-ownership/', TransferOwnershipAPIView.as_view(), name='transfer-ownership'),
     path('group/<int:room_id>/add-yourself/', AddYourselfToRoomAPIView.as_view(), name='add-yourself-to-room'),
