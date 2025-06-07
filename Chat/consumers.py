@@ -213,6 +213,31 @@ class ChatConsumer(AsyncWebsocketConsumer):
             else:
                 await self.send(text_data=json.dumps({"error": "Reaction failed; message not found."}))
 
+        elif action == "pin_message":
+            message_id = text_data_json.get("message_id")
+            pin = text_data_json.get("pin", True)
+            if not message_id:
+                await self.send(text_data=json.dumps({"error": "Message ID is required for pinning."}))
+                return
+            
+            msg = await self.pin_unpin_message(message_id, pin)
+            if msg is None:
+                await self.send(text_data=json.dumps({
+                    "error": "Pin/unpin failed (maybe no permission or limit reached)."
+                }))
+            else:
+                # Broadcast to everyone in the room
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        "type": "chat_message_pinned",
+                        "id": message_id,
+                        "is_pinned": pin,
+                        "pinned_at": msg.pinned_at.isoformat() if pin else None,
+                    },
+                )
+            return 
+            
 
         elif action == "delete_message":
             # Handle deleting an existing message
@@ -304,6 +329,31 @@ class ChatConsumer(AsyncWebsocketConsumer):
         except Message.DoesNotExist:
             return None
 
+    @sync_to_async
+    def pin_unpin_message(self, message_id, pin):
+        from .models import Message
+        from django.core.exceptions import ValidationError
+
+        try:
+            msg = Message.objects.get(id=message_id)
+            user = self.scope["user"]
+
+            # Only allow the sender or the room’s creator to pin/unpin
+            if not msg.room.members.filter(id=user.id).exists():
+                return None
+            
+            if pin:
+                try:
+                    msg.pin()
+                except ValidationError:
+                    return None
+            else:
+                msg.unpin()
+            return msg
+
+        except Message.DoesNotExist:
+            return None
+
 
     # Receive message from room group
     async def chat_message(self, event):
@@ -388,6 +438,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
             "action": "typing",
             "sender": event["sender"],
             "is_typing": event["is_typing"],
+        }))
+
+    async def chat_message_pinned(self, event):
+        await self.send(text_data=json.dumps({
+            "action":    "message_pinned",
+            "id":        event["id"],
+            "is_pinned": event["is_pinned"],
+            "pinned_at": event.get("pinned_at"),
         }))
 
     def get_sender_details(self, sender):

@@ -1,3 +1,4 @@
+from datetime import timezone
 from django.db import models
 from cloudinary.models import CloudinaryField
 from django.conf import settings
@@ -49,6 +50,8 @@ class Message(models.Model):
     status = models.JSONField(
         default=dict
     )
+    is_pinned = models.BooleanField(default=False)
+    pinned_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -65,6 +68,21 @@ class Message(models.Model):
         self.content = new_content
         self.is_edited = True
         self.save()
+
+    def pin(self):
+        from django.core.exceptions import ValidationError
+        # enforce max 3 pinned per room
+        pinned_count = Message.objects.filter(room=self.room, is_pinned=True).count()
+        if pinned_count >= 3 and not self.is_pinned:
+            raise ValidationError("You can only pin up to 3 messages per room.")
+        self.is_pinned = True
+        self.pinned_at = timezone.now()
+        self.save(update_fields=["is_pinned", "pinned_at"])
+
+    def unpin(self):
+        self.is_pinned = False
+        self.pinned_at = None
+        self.save(update_fields=["is_pinned", "pinned_at"])
 
     def save(self, *args, **kwargs):
         """
